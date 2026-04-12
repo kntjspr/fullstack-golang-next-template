@@ -7,7 +7,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 
-	"github.com/create-go-app/chi-go-template/internal/config"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
 )
 
 // OpenRedis creates and validates a Redis connection.

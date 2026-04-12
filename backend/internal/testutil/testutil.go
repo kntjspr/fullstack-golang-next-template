@@ -13,7 +13,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/create-go-app/chi-go-template/internal/models"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
 )
 
 // SetupTestDB creates a PostgreSQL test database connection and migrates all models.

@@ -10,8 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/create-go-app/chi-go-template/internal/models"
-	"github.com/create-go-app/chi-go-template/middleware"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
+	"github.com/kntjspr/fullstack-golang-next-template/middleware"
 )
 
 type getMePayload struct {

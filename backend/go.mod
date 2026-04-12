@@ -1,4 +1,4 @@
-module github.com/create-go-app/chi-go-template
+module github.com/kntjspr/fullstack-golang-next-template
 
 go 1.25.0
 

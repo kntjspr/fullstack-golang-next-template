@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/create-go-app/chi-go-template/internal/auth"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
 )
 
 type authContextKey string

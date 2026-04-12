@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/create-go-app/chi-go-template/internal/testutil"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
 )
 
 func TestRequestIDMiddleware(t *testing.T) {

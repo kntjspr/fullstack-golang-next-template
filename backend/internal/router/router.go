@@ -9,8 +9,8 @@ import (
 	httpSwagger "github.com/swaggo/http-swagger/v2"
 	"gorm.io/gorm"
 
-	"github.com/create-go-app/chi-go-template/internal/router/healthcheck"
-	"github.com/create-go-app/chi-go-template/internal/swagger"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/router/healthcheck"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/swagger"
 )
 
 // GetRoutes function for getting routes.

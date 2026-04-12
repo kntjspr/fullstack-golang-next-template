@@ -7,8 +7,8 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/create-go-app/chi-go-template/internal/auth"
-	"github.com/create-go-app/chi-go-template/internal/models"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
 )
 
 // CreateTestUser inserts a user fixture and returns it.

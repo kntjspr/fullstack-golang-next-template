@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/create-go-app/chi-go-template/internal/models"
-	"github.com/create-go-app/chi-go-template/internal/testutil"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
 )
 
 func TestMigrateUpDown(t *testing.T) {

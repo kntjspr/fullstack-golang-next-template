@@ -9,14 +9,14 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/create-go-app/chi-go-template/cmd"
-	"github.com/create-go-app/chi-go-template/internal/cache"
-	"github.com/create-go-app/chi-go-template/internal/config"
-	"github.com/create-go-app/chi-go-template/internal/database"
-	"github.com/create-go-app/chi-go-template/internal/logger"
-	"github.com/create-go-app/chi-go-template/internal/router"
-	"github.com/create-go-app/chi-go-template/internal/telemetry"
-	"github.com/create-go-app/chi-go-template/middleware"
+	"github.com/kntjspr/fullstack-golang-next-template/cmd"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/cache"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/database"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/logger"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/router"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/telemetry"
+	"github.com/kntjspr/fullstack-golang-next-template/middleware"
 
 	_ "github.com/joho/godotenv/autoload"
 )

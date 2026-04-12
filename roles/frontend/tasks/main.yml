@@ -1,0 +1,31 @@
+# Ansible role for deploy a frontend of the Create Go App project.
+
+---
+- name: Delete previous frontend files
+  file:
+    state: absent
+    path: "{{ server_dir }}/frontend"
+
+- name: Copy frontend files
+  synchronize:
+    src: ./frontend
+    dest: "{{ server_dir }}"
+    rsync_opts:
+      - "--exclude=.git,.github,node_modules,.next,out,*.md"
+
+- name: Install Bun runtime
+  shell: curl -fsSL https://bun.sh/install | bash
+  args:
+    creates: "{{ bun_install_dir }}/bin/bun"
+  environment:
+    BUN_INSTALL: "{{ bun_install_dir }}"
+
+- name: Install frontend dependencies with Bun
+  command: "{{ bun_install_dir }}/bin/bun install"
+  args:
+    chdir: "{{ server_dir }}/frontend"
+
+- name: Build frontend static bundle
+  command: "{{ bun_install_dir }}/bin/bun run build"
+  args:
+    chdir: "{{ server_dir }}/frontend"

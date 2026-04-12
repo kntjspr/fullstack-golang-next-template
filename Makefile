@@ -1,6 +1,6 @@
-# A default Makefile for Create Go App project.
-# Author: Vic Shóstak <koddr.me@gmail.com> (https://github.com/koddr)
-# For more information, please visit https://github.com/create-go-app/cli
+# A default Makefile for fullstack-golang-next-template.
+# Author: Kent Jasper Sisi <kntjspr@pm.me> (https://github.com/kntjspr)
+# For more information, please visit https://github.com/kntjspr/fullstack-golang-next-template
 
 .DEFAULT_GOAL := help
 

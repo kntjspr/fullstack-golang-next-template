@@ -16,10 +16,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go 1.22
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25.x'
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -57,6 +57,8 @@ jobs:
         env:
           TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
           TEST_REDIS_URL: redis://localhost:6380
+          GOFLAGS: ""
+          GOTOOLCHAIN: local
         run: |
           cd backend
           go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic
@@ -89,10 +91,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go 1.22
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25.x'
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -157,10 +159,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go 1.22
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25.x'
 
       - name: Start test services
         run: docker compose -f docker-compose.test.yml up -d
@@ -207,10 +209,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Go 1.22
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.25.x'
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -232,6 +234,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify security headers on /healthz
+        env:
+          APP_ENV: development
+          DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
+          REDIS_URL: redis://localhost:6380
+          JWT_SECRET: ci-test-secret-not-for-production
+          SERVER_PORT: 5000
         run: |
           set -euo pipefail
           docker compose -f docker-compose.test.yml up -d
@@ -277,6 +285,8 @@ jobs:
             fi
             sleep 1
           done
+
+          cat /tmp/backend.log || true
 
           headers="$(curl -sS -D - -o /dev/null http://127.0.0.1:5000/healthz)"
 

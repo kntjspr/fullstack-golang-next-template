@@ -30,7 +30,7 @@ if [ ! -f "$BOOTSTRAP_DONE_FILE" ]; then
   if [ -n "$NEW_MODULE_NAME" ]; then
     echo "==> Renaming module to: $NEW_MODULE_NAME"
 
-    OLD_MODULE="github.com/create-go-app/chi-go-template"
+    OLD_MODULE="github.com/kntjspr/fullstack-golang-next-template"
 
     # Replace in all .go files
     find "$ROOT_DIR/backend" -type f -name "*.go" \

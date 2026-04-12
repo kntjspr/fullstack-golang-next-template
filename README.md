@@ -1,181 +1,255 @@
-# Create Go App Full-Stack Template
-A production-ready full-stack template: Go backend + Next.js frontend, batteries included.
+# go-app-fullstack-template
 
-## 2. What's included
-Backend: You get a Go API service with the chi router (a lightweight HTTP router and middleware stack), GORM (an ORM for working with SQL data in Go), Postgres for persistent data, Redis for fast cache/state operations, JWT-based authentication, and a single OpenAPI specification at `backend/internal/swagger/openapi.yaml`.
+production-ready full-stack template. go backend + next.js frontend. batteries included.
 
-Frontend: You get a Next.js 15 app with TypeScript, Bun as the package manager/runtime, and MSW (Mock Service Worker) so frontend tests can mock API behavior through real request interception instead of brittle fake function stubs.
+---
 
-Infrastructure: You get Docker Compose for local test services, Ansible roles for provisioning and deployment, and GitHub Actions CI to run automated checks on pushes and pull requests.
+## what's included
 
-Quality: You get a test-first workflow, contract tests that catch API drift between spec and implementation, coverage reporting, and security-focused middleware defaults such as hardened response headers.
+**backend**
 
-## 3. Prerequisites
-Install these tools before you start:
+- `chi` — lightweight http router with middleware support
+- `gorm` — sql orm for go
+- `postgres` — persistent storage
+- `redis` — cache and ephemeral state
+- jwt authentication
+- single openapi spec at `backend/internal/swagger/openapi.yaml`
 
-1. Go 1.22+ — install from https://go.dev/dl/
-2. Bun — install from https://bun.sh
-3. Docker Desktop — install from https://www.docker.com/products/docker-desktop/
-4. Make — preinstalled on most macOS/Linux systems; on Windows, install with Chocolatey (`choco install make`) or use WSL
-5. For deployment: a Linux server with SSH access
+**frontend**
 
-## 4. Quick start (local development)
-1. Clone this repository:
+- next.js 15 with typescript
+- bun as package manager and runtime
+- msw (mock service worker) for request-level api mocking in tests — no brittle function stubs
+
+**infrastructure**
+
+- docker compose for local test services
+- ansible roles for provisioning and deployment
+- github actions ci on push and pr
+
+**quality**
+
+- test-first workflow
+- contract tests that catch drift between openapi spec and implementation
+- coverage reporting
+- security-focused middleware defaults (hardened response headers)
+
+---
+
+## prerequisites
+
+- **go 1.22+** — https://go.dev/dl/
+- **bun** — https://bun.sh
+- **docker desktop** — https://www.docker.com/products/docker-desktop/
+- **make** — preinstalled on macos/linux; windows: `choco install make` or use wsl
+- **deployment only**: a linux server with ssh access
+
+---
+
+## quick start
+
+**1. clone**
+
 ```bash
 git clone <your-repo-url>
 cd go-project
 ```
 
-2. Run bootstrap:
+**2. bootstrap**
+
 ```bash
 make bootstrap
 ```
-- On first run: asks for your Go module name and renames it throughout the codebase automatically.
-- On subsequent runs: skips first-time setup and goes straight to dependency install and test verification.
-- After bootstrap completes, a `.bootstrap-done` file is created locally (git-ignored) so the first-time prompt never shows again.
 
-3. Copy `.env.example` to `.env` and fill in values:
+first run: prompts for your go module name and renames it throughout the codebase.  
+subsequent runs: skips setup, goes straight to dependency install and test verification.  
+completion writes `.bootstrap-done` locally (git-ignored) so the prompt never repeats.
+
+**3. configure env**
+
 ```bash
 cp .env.example .env
 ```
-Required variables:
-- `DATABASE_URL`: connection string for your Postgres database
-- `REDIS_URL`: connection string for your Redis instance
-- `JWT_SECRET`: a random secret string used to sign auth tokens (generate one with `openssl rand -hex 32`)
-- `APP_ENV`: set to `development` locally
 
-4. Start local development:
+required variables:
+
+| variable | description |
+|---|---|
+| `DATABASE_URL` | postgres connection string |
+| `REDIS_URL` | redis connection string |
+| `JWT_SECRET` | token signing secret — generate with `openssl rand -hex 32` |
+| `APP_ENV` | set to `development` locally |
+
+**4. start dev**
+
 ```bash
 make dev
 ```
-This starts the backend on `:8080` and the frontend on `:3000`.
 
-5. Open the app:
-- http://localhost:3000
+backend on `:8080`, frontend on `:3000`.
 
-## 5. Running tests
-- `make test` — runs all unit tests
-- `make validate-contracts` — checks API spec matches implementation
-- `bash scripts/test-integration.sh` — runs integration tests (needs Docker)
-- `make coverage` — prints coverage report
-- `make check` — full pre-deploy gate (run this before every deploy)
-- API docs: http://localhost:8080/swagger/ui (available when backend is running)
+**5. open**
 
-## 6. Project structure
-```text
-go-project/
-├── backend/                    # Go API server
-│   ├── internal/               # Private packages (router, auth, DB, cache, config, contract tests)
-│   ├── middleware/             # Shared HTTP middleware (auth, rate limit, headers, validation)
-│   ├── migrations/             # SQL migration files
-│   └── main.go                 # Backend entrypoint
-├── frontend/                   # Next.js application
-│   └── src/
-│       ├── app/                # App Router pages, layout, sitemap, robots
-│       ├── lib/                # API client and shared frontend utilities
-│       └── mocks/              # MSW API mocks used in tests
-├── roles/                      # Ansible deployment roles
-├── docs/                       # Architecture docs, ADRs, and security notes
-├── scripts/                    # Automation scripts (bootstrap, checks, integration helpers)
-├── docker-compose.test.yml     # Postgres/Redis test infrastructure
-├── Makefile                    # Common project commands
-└── AGENTS.md                   # Contributor and AI agent workflow guide
+- app: http://localhost:3000
+- api docs (swagger ui): http://localhost:8080/swagger/ui
+
+---
+
+## tests
+
+```bash
+make test                          # unit tests
+make validate-contracts            # openapi spec vs implementation
+bash scripts/test-integration.sh   # integration tests (requires docker)
+make coverage                      # coverage report
+make check                         # full pre-deploy gate — run this before every deploy
 ```
 
-## 7. Deployment
-### What you need
-- A Linux server (Ubuntu 22.04 recommended) with SSH access
-- Your server's IP address or hostname
-- A user with sudo privileges on the server
+---
 
-### Steps
-1. Edit `hosts.ini` and replace the placeholder IP with your server IP:
+## project structure
+
+```text
+go-project/
+├── backend/                    # go api server
+│   ├── internal/               # private packages (router, auth, db, cache, config, contract tests)
+│   ├── middleware/             # shared http middleware (auth, rate limit, headers, validation)
+│   ├── migrations/             # sql migration files
+│   └── main.go                 # backend entrypoint
+├── frontend/                   # next.js application
+│   └── src/
+│       ├── app/                # app router pages, layout, sitemap, robots
+│       ├── lib/                # api client and shared frontend utilities
+│       └── mocks/              # msw api mocks used in tests
+├── roles/                      # ansible deployment roles
+├── docs/                       # architecture docs, adrs, and security notes
+├── scripts/                    # automation scripts (bootstrap, checks, integration helpers)
+├── docker-compose.test.yml     # postgres/redis test infrastructure
+├── Makefile                    # common project commands
+└── AGENTS.md                   # contributor and ai agent workflow guide
+```
+
+---
+
+## deployment
+
+### what you need
+
+- linux server (ubuntu 22.04 recommended) with ssh access
+- server ip address or hostname
+- user with sudo privileges on the server
+
+### steps
+
+**1. update hosts**
+
+edit `hosts.ini` and replace the placeholder with your server ip:
+
 ```ini
 [servers]
 your.server.ip.here
 ```
 
-2. Review `playbook.yml` if needed. It runs roles that provision Docker, Nginx, Postgres, Redis, the backend service, and the frontend deployment artifacts.
+**2. review playbook**
 
-3. Set `APP_ENV=production` in your `.env`.
+`playbook.yml` runs roles that provision: docker, nginx, postgres, redis, the backend service, and the frontend deployment artifacts. review if needed.
 
-4. Run the full gate locally:
+**3. set production env**
+
+```bash
+APP_ENV=production
+```
+
+**4. run the pre-deploy gate**
+
 ```bash
 make check
 ```
 
-5. Run the Ansible playbook:
+**5. deploy**
+
 ```bash
 ansible-playbook -i hosts.ini playbook.yml
 ```
 
-6. After deploy:
-- Nginx serves the frontend on ports 80/443
-- Backend API runs on `:8080` behind Nginx
-- Postgres and Redis run as Docker containers on the server
+**6. after deploy**
 
-### First deploy checklist
-- [ ] `hosts.ini` updated with real server IP
+- nginx serves the frontend on ports 80/443
+- backend api runs on `:8080` behind nginx
+- postgres and redis run as docker containers on the server
+
+### first deploy checklist
+
+- [ ] `hosts.ini` updated with real server ip
 - [ ] `.env` has production values (strong `JWT_SECRET`, real `DATABASE_URL`)
 - [ ] `make check` passes locally
-- [ ] SSH key is set up for your server user
-- [ ] Server has ports 80 and 443 open in firewall
+- [ ] ssh key configured for your server user
+- [ ] ports 80 and 443 open in server firewall
 
-## 8. Making your first change
-1. Open `backend/internal/swagger/openapi.yaml` and add your new route.
-2. Run `make validate-contracts` (it will fail; this is expected).
-3. Write a failing test in `backend/internal/router/`.
-4. Write the handler.
-5. Run `make test` and confirm it passes.
-6. Run `make validate-contracts` and confirm it passes.
-7. Add the MSW mock in `frontend/src/mocks/handlers.ts`.
-8. Commit.
+---
 
-## 9. Getting help
-- Read `AGENTS.md` for contributor conventions
-- Read `docs/ARCHITECTURE.md` for system design
-- Read `docs/adr/` for why key decisions were made
-- Open an issue on GitHub for bugs or questions
+## making your first change
 
-## 10. Authentication
-The backend accepts two auth mechanisms at the same time:
-- Bearer token in `Authorization: Bearer <token>`
-- httpOnly cookie named `auth_token`
+1. open `backend/internal/swagger/openapi.yaml` and add your new route
+2. run `make validate-contracts` — it will fail; this is expected
+3. write a failing test in `backend/internal/router/`
+4. write the handler
+5. run `make test` — confirm it passes
+6. run `make validate-contracts` — confirm it passes
+7. add the msw mock in `frontend/src/mocks/handlers.ts`
+8. commit
 
-Priority order:
-1. If a Bearer token is present, it is used first.
-2. If no Bearer token is present, backend falls back to `auth_token` cookie.
-3. If neither is present, request is rejected with `401`.
+---
 
-Browser apps: login sets `auth_token` automatically and requests send it automatically (with `credentials: "include"` in the API client), so no extra browser-side cookie handling is needed.
+## authentication
 
-CLI clients:
+the backend accepts two auth mechanisms simultaneously:
+
+- bearer token via `Authorization: Bearer <token>` header
+- httponly cookie named `auth_token`
+
+**priority order**
+
+1. bearer token present → use it
+2. no bearer token → fall back to `auth_token` cookie
+3. neither present → `401`
+
+**browser clients**
+
+login sets `auth_token` automatically. requests send it automatically with `credentials: "include"` in the api client. no extra cookie handling needed.
+
+**cli clients**
+
 ```bash
 curl -H "Authorization: Bearer <your-token>" https://yourapi.com/protected
 ```
 
-MCP/programmatic clients use the same Bearer header pattern.
+mcp and programmatic clients use the same bearer header pattern.
 
-Logout behavior:
-- `POST /auth/logout` clears the `auth_token` cookie.
-- Bearer-only clients should discard stored tokens on the client side.
+**getting a token**
 
-To get a token:
-- `POST /auth/login` with `{email, password}`.
-- Response returns token data in JSON and also sets the `auth_token` cookie.
+`POST /auth/login` with `{ email, password }` — returns token data as json and sets the `auth_token` cookie.
 
-XSS tradeoff:
-- `localStorage` tokens are readable by JavaScript.
-- httpOnly cookies are not readable by JavaScript.
-- This template supports both: cookie flow for browsers, Bearer flow for CLI/MCP/API clients.
+**logout**
 
-## 12. Customizing this template
+`POST /auth/logout` clears the `auth_token` cookie. bearer-only clients should discard the stored token client-side.
 
-### Analytics - Umami
-Privacy-friendly, self-hostable, GDPR-compliant analytics.
-- File to edit: `frontend/src/app/layout.tsx`
-- Where: inside the `<head>` section of the root layout
-- Add:
+**xss tradeoff**
+
+- `localStorage` tokens are readable by javascript
+- httponly cookies are not
+- this template supports both: cookie flow for browsers, bearer flow for cli/mcp/api clients
+
+---
+
+## customization
+
+### analytics — umami
+
+privacy-friendly, self-hostable, gdpr-compliant.
+
+file: `frontend/src/app/layout.tsx` → inside the `<head>` of root layout
+
 ```html
 <script
   defer
@@ -183,53 +257,75 @@ Privacy-friendly, self-hostable, GDPR-compliant analytics.
   data-website-id="your-website-id"
 />
 ```
-- Replace `src` with your Umami instance URL and `data-website-id` with your dashboard website ID.
-- Self-host docs: https://umami.is/docs/install
 
-### Error tracking - Sentry
-Captures runtime errors and performance traces.
+replace `src` with your umami instance url and `data-website-id` with your dashboard id.  
+self-host docs: https://umami.is/docs/install
 
-Backend (already wired):
-- File: `backend/internal/telemetry/sentry.go` (no code changes required)
-- Set in `.env`:
+---
+
+### error tracking — sentry
+
+**backend** (already wired)
+
+file: `backend/internal/telemetry/sentry.go` — no code changes needed. set in `.env`:
+
 ```bash
 SENTRY_DSN=your-dsn-from-sentry-dashboard
 SENTRY_ENVIRONMENT=production
 SENTRY_RELEASE=v1.0.0
 ```
-- DSN location: Sentry dashboard -> Project -> Settings -> Client Keys
 
-Frontend (not wired yet):
-1. `cd frontend && bun add @sentry/nextjs`
-2. `bunx @sentry/wizard@latest -i nextjs`
-3. Set in `.env`: `NEXT_PUBLIC_SENTRY_DSN=your-dsn`
-4. Docs: https://docs.sentry.io/platforms/javascript/guides/nextjs/
+dsn location: sentry dashboard → project → settings → client keys
 
-### Email - Resend (recommended)
-Developer-friendly transactional email API.
+**frontend** (not wired yet)
 
-No email code exists yet. Add it with:
-1. Create `backend/internal/mailer/mailer.go`
-2. Install SDK: `go get github.com/resendlabs/resend-go`
-3. Set in `.env`: `RESEND_API_KEY=your-key`
-4. Docs: https://resend.com/docs/send-with-go
+```bash
+cd frontend && bun add @sentry/nextjs
+bunx @sentry/wizard@latest -i nextjs
+```
 
-### Payments - Stripe
-No payment code exists yet. Add it with:
-- Backend webhook handler: create `backend/internal/router/webhook.go`
-- Frontend checkout page: create `frontend/src/app/checkout/page.tsx`
-- Set in `.env`:
+set in `.env`: `NEXT_PUBLIC_SENTRY_DSN=your-dsn`  
+docs: https://docs.sentry.io/platforms/javascript/guides/nextjs/
+
+---
+
+### email — resend
+
+no email code exists yet. add it with:
+
+1. create `backend/internal/mailer/mailer.go`
+2. install sdk: `go get github.com/resendlabs/resend-go`
+3. set in `.env`: `RESEND_API_KEY=your-key`
+
+docs: https://resend.com/docs/send-with-go
+
+---
+
+### payments — stripe
+
+no payment code exists yet. add it with:
+
+- backend webhook handler: `backend/internal/router/webhook.go`
+- frontend checkout page: `frontend/src/app/checkout/page.tsx`
+- set in `.env`:
+
 ```bash
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 ```
-- Docs: https://stripe.com/docs/webhooks
 
-### File storage - S3 compatible (Supabase Storage, Cloudflare R2, AWS S3)
-No storage code exists yet. Add it with:
-1. Create `backend/internal/storage/storage.go`
-2. Install SDK: `go get github.com/aws/aws-sdk-go-v2`
-3. Set in `.env`:
+docs: https://stripe.com/docs/webhooks
+
+---
+
+### file storage — s3-compatible
+
+works with supabase storage, cloudflare r2, aws s3. no storage code exists yet. add it with:
+
+1. create `backend/internal/storage/storage.go`
+2. install sdk: `go get github.com/aws/aws-sdk-go-v2`
+3. set in `.env`:
+
 ```bash
 STORAGE_ENDPOINT=https://your-endpoint
 STORAGE_BUCKET=your-bucket
@@ -237,56 +333,69 @@ STORAGE_KEY=your-access-key
 STORAGE_SECRET=your-secret-key
 ```
 
-### OAuth / Social login
-No OAuth code exists yet. Add it with:
-- File to extend: `backend/internal/router/auth.go`
-- Recommended library: `golang.org/x/oauth2`
-- Add callback routes in `backend/internal/swagger/openapi.yaml` first
+---
 
-### Database GUI
-To inspect Postgres locally:
-- Recommended: TablePlus (https://tableplus.com) or pgAdmin
-- Connection string: use `DATABASE_URL` from `.env`
+### oauth / social login
 
-## 13. Environment variable reference
+no oauth code exists yet. add it with:
 
-| Variable | Required | Description |
-| --- | --- | --- |
-| APP_ENV | Required | `development` or `production`. Controls cookie Secure flag and graceful shutdown behavior. |
-| DATABASE_URL | Required | Full Postgres connection string including host, port, user, password, and database name. |
-| REDIS_URL | Required | Redis connection string. |
-| JWT_SECRET | Required | Secret for signing auth tokens. Generate with: `openssl rand -hex 32`. |
-| SERVER_HOST | Optional | Backend bind host. Default: `0.0.0.0`. |
-| SERVER_PORT | Optional | Backend API port. Default: `8080`. |
-| LOGGER_LEVEL | Optional | Log verbosity: `debug`, `info`, `warn`, `error`. |
-| SENTRY_DSN | Optional | Sentry project DSN. Leave empty to disable error tracking. |
-| SENTRY_ENVIRONMENT | Optional | Sentry environment tag, usually aligned with `APP_ENV`. |
-| SENTRY_RELEASE | Optional | Release version tag sent to Sentry. |
-| TEST_DATABASE_URL | Dev only | Postgres URL used by tests (local default points to port `5433`). |
-| TEST_REDIS_URL | Dev only | Redis URL used by tests (local default points to port `6380`). |
-| STAGE_STATUS | Optional | Backend runtime mode (`dev` or `prod`). |
-| SERVER_READ_TIMEOUT | Optional | HTTP read timeout in seconds. |
-| SERVER_WRITE_TIMEOUT | Optional | HTTP write timeout in seconds. |
-| SERVER_IDLE_TIMEOUT | Optional | HTTP idle timeout in seconds. |
-| LOGGER_PRETTY | Optional | Pretty console log output (`true`/`false`). |
-| DB_ENABLE | Optional | Enables Postgres integration when `true`. |
-| DB_HOST | Optional | Postgres host when `DB_ENABLE=true`. |
-| DB_PORT | Optional | Postgres port when `DB_ENABLE=true`. |
-| DB_USER | Optional | Postgres user when `DB_ENABLE=true`. |
-| DB_PASSWORD | Optional | Postgres password when `DB_ENABLE=true`. |
-| DB_NAME | Optional | Postgres database name when `DB_ENABLE=true`. |
-| DB_SSL_MODE | Optional | Postgres SSL mode (`disable`, `require`, etc). |
-| DB_TIMEZONE | Optional | Postgres timezone setting. |
-| REDIS_ENABLE | Optional | Enables Redis integration when `true`. |
-| REDIS_HOST | Optional | Redis host when `REDIS_ENABLE=true`. |
-| REDIS_PORT | Optional | Redis port when `REDIS_ENABLE=true`. |
-| REDIS_PASSWORD | Optional | Redis password when required. |
-| REDIS_DB | Optional | Redis DB index. |
-| SENTRY_TRACES_SAMPLE_RATE | Optional | Trace sample rate for Sentry performance events. |
-| NEXT_PUBLIC_UMAMI_WEBSITE_ID | Optional | Umami site identifier used by the frontend script. |
-| NEXT_PUBLIC_UMAMI_SCRIPT_URL | Optional | Umami script URL loaded by the frontend. |
+- extend: `backend/internal/router/auth.go`
+- recommended library: `golang.org/x/oauth2`
+- add callback routes in `backend/internal/swagger/openapi.yaml` first
 
-Copy `.env.example` to `.env` and fill in all Required variables before running `make dev` or `make bootstrap`. Never commit your `.env` file - it is blocked by the pre-commit hook.
+---
 
+### database gui
 
-Fully ready and compatible for AI assisted development and modern workflows :D
+inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use `DATABASE_URL` from `.env` as the connection string.
+
+---
+
+## environment variables
+
+| variable | required | description |
+|---|---|---|
+| `APP_ENV` | required | `development` or `production`. controls cookie secure flag and graceful shutdown behavior. |
+| `DATABASE_URL` | required | full postgres connection string including host, port, user, password, and database name. |
+| `REDIS_URL` | required | redis connection string. |
+| `JWT_SECRET` | required | secret for signing auth tokens. generate with `openssl rand -hex 32`. |
+| `SERVER_HOST` | optional | backend bind host. default: `0.0.0.0`. |
+| `SERVER_PORT` | optional | backend api port. default: `8080`. |
+| `LOGGER_LEVEL` | optional | log verbosity: `debug`, `info`, `warn`, `error`. |
+| `LOGGER_PRETTY` | optional | pretty console log output (`true`/`false`). |
+| `SENTRY_DSN` | optional | sentry project dsn. leave empty to disable. |
+| `SENTRY_ENVIRONMENT` | optional | sentry environment tag, usually aligned with `APP_ENV`. |
+| `SENTRY_RELEASE` | optional | release version tag sent to sentry. |
+| `SENTRY_TRACES_SAMPLE_RATE` | optional | trace sample rate for sentry performance events. |
+| `TEST_DATABASE_URL` | dev only | postgres url used by tests. local default points to port `5433`. |
+| `TEST_REDIS_URL` | dev only | redis url used by tests. local default points to port `6380`. |
+| `STAGE_STATUS` | optional | backend runtime mode (`dev` or `prod`). |
+| `SERVER_READ_TIMEOUT` | optional | http read timeout in seconds. |
+| `SERVER_WRITE_TIMEOUT` | optional | http write timeout in seconds. |
+| `SERVER_IDLE_TIMEOUT` | optional | http idle timeout in seconds. |
+| `DB_ENABLE` | optional | enables postgres integration when `true`. |
+| `DB_HOST` | optional | postgres host when `DB_ENABLE=true`. |
+| `DB_PORT` | optional | postgres port when `DB_ENABLE=true`. |
+| `DB_USER` | optional | postgres user when `DB_ENABLE=true`. |
+| `DB_PASSWORD` | optional | postgres password when `DB_ENABLE=true`. |
+| `DB_NAME` | optional | postgres database name when `DB_ENABLE=true`. |
+| `DB_SSL_MODE` | optional | postgres ssl mode (`disable`, `require`, etc). |
+| `DB_TIMEZONE` | optional | postgres timezone setting. |
+| `REDIS_ENABLE` | optional | enables redis integration when `true`. |
+| `REDIS_HOST` | optional | redis host when `REDIS_ENABLE=true`. |
+| `REDIS_PORT` | optional | redis port when `REDIS_ENABLE=true`. |
+| `REDIS_PASSWORD` | optional | redis password when required. |
+| `REDIS_DB` | optional | redis db index. |
+| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | optional | umami site identifier used by the frontend script. |
+| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | optional | umami script url loaded by the frontend. |
+
+copy `.env.example` to `.env` and fill in all required variables before running `make dev` or `make bootstrap`. never commit `.env` — blocked by the pre-commit hook.
+
+---
+
+## getting help
+
+- `AGENTS.md` — contributor conventions and ai agent workflow guide
+- `docs/ARCHITECTURE.md` — system design overview
+- `docs/adr/` — decision records explaining why key choices were made
+- github issues — bugs and questions

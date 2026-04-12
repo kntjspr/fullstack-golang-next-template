@@ -21,7 +21,8 @@ if [ ! -f "$BOOTSTRAP_DONE_FILE" ]; then
   echo ""
 
   # Prompt for new module name
-  echo "Current Go module name: github.com/create-go-app/chi-go-template"
+  echo "Current Go module name: https://github.com/kntjspr/fullstack-golang-next-template"
+  echo "Project Author: Kent Jasper Sisi <kntjspr@pm.me>"
   echo "Enter your new Go module name (e.g. github.com/yourname/myproject)"
   echo "Press Enter to keep the current name:"
   read -r NEW_MODULE_NAME

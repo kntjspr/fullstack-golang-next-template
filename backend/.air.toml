@@ -1,0 +1,14 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/main ./main.go"
+  bin = "./tmp/main"
+  include_ext = ["go"]
+  exclude_dir = ["tmp", "vendor", ".git", ".idea", ".vscode", "node_modules", "build"]
+  delay = 200
+  kill_delay = "300ms"
+  stop_on_error = true
+
+[log]
+  time = true

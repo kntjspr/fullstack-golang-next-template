@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: Create Go App API
+  version: 0.1.0
+  description: Contract for health and documentation endpoints.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: /
+security: []
+
+paths:
+  /hc/status:
+    get:
+      operationId: getHealthStatus
+      summary: Liveness endpoint
+      description: Returns basic API liveness status. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericRequest'
+            example: {}
+      responses:
+        "200":
+          description: Service is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+              example:
+                status: ok
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: unauthorized
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: validation failed
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: internal server error
+
+  /healthz:
+    get:
+      operationId: getReadinessStatus
+      summary: Readiness endpoint
+      description: Returns health state of app and enabled dependencies. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericRequest'
+            example: {}
+      responses:
+        "200":
+          description: App and dependencies are healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthzResponse'
+              example:
+                status: ok
+                checked_at: "2026-01-01T00:00:00Z"
+                components:
+                  app:
+                    status: up
+                  postgres:
+                    status: disabled
+                  redis:
+                    status: disabled
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: unauthorized
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: validation failed
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: internal server error
+        "503":
+          description: Dependency unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthzResponse'
+              example:
+                status: degraded
+                checked_at: "2026-01-01T00:00:00Z"
+                components:
+                  app:
+                    status: up
+                  postgres:
+                    status: down
+                    error: "dial tcp 127.0.0.1:5432: connect refused"
+                  redis:
+                    status: up
+
+  /auth/login:
+    post:
+      operationId: postAuthLogin
+      summary: Login and issue auth token
+      description: Validates user credentials, returns JWT token in response body, and sets httpOnly auth_token cookie.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: user@example.com
+              password: correct-password
+      responses:
+        "200":
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: Sets auth_token httpOnly cookie for browser clients.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: invalid credentials
+        "422":
+          description: Validation errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorsResponse'
+        "503":
+          description: Database unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: database unavailable
+
+  /auth/refresh:
+    post:
+      operationId: postAuthRefresh
+      summary: Refresh auth token
+      description: Accepts Bearer token or auth_token cookie, issues a new token, and resets the auth_token cookie.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        "200":
+          description: Token refreshed
+          headers:
+            Set-Cookie:
+              description: Resets auth_token httpOnly cookie with refreshed token.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: invalid token
+
+  /auth/logout:
+    post:
+      operationId: postAuthLogout
+      summary: Logout current browser session
+      description: Clears auth_token cookie and always returns success.
+      responses:
+        "200":
+          description: Logged out
+          headers:
+            Set-Cookie:
+              description: Clears auth_token cookie by setting Max-Age to -1.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+              example:
+                message: logged out
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: invalid request
+
+  /users/me:
+    get:
+      operationId: getMe
+      summary: Current user profile
+      description: Returns the authenticated user's profile using Bearer token authentication or auth_token cookie fallback.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        "200":
+          description: Authenticated user profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: missing authorization
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: user not found
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorResponse'
+              example:
+                error: internal server error
+
+  /swagger/spec:
+    get:
+      operationId: getSwaggerSpec
+      summary: OpenAPI YAML endpoint
+      description: Returns the OpenAPI document served by the backend.
+      responses:
+        "200":
+          description: OpenAPI specification payload
+          content:
+            application/yaml:
+              schema:
+                type: string
+              example: "openapi: 3.0.3"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+
+  /swagger/ui:
+    get:
+      operationId: getSwaggerUI
+      summary: Redoc documentation page
+      description: Returns the Redoc HTML page for interactive API documentation.
+      responses:
+        "200":
+          description: Redoc HTML page
+          content:
+            text/html:
+              schema:
+                type: string
+              example: "<html><body><redoc spec-url=\"/swagger/spec\"></redoc></body></html>"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+
+  /openapi.yaml:
+    get:
+      operationId: getOpenAPISpec
+      summary: OpenAPI YAML endpoint
+      description: Returns the OpenAPI document served by the backend. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericRequest'
+            example: {}
+      responses:
+        "200":
+          description: OpenAPI specification payload
+          content:
+            application/yaml:
+              schema:
+                type: string
+              example: "openapi: 3.0.3"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: unauthorized
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: validation failed
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: internal server error
+
+  /swagger/{path}:
+    get:
+      operationId: getSwaggerUIAsset
+      summary: Swagger UI endpoint
+      description: Returns Swagger UI assets. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+          example: index.html
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenericRequest'
+            example: {}
+      responses:
+        "200":
+          description: Swagger UI asset content
+          content:
+            text/html:
+              schema:
+                type: string
+              example: "<html><body>Swagger UI</body></html>"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: invalid request payload
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: unauthorized
+        "422":
+          description: Unprocessable entity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: validation failed
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: error
+                message: internal server error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Endpoints accept JWT through Authorization header Bearer <token>.
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: auth_token
+      description: Endpoints also accept httpOnly auth_token cookie as an alternative to BearerAuth.
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          example: correct-password
+    TokenResponse:
+      type: object
+      required:
+        - token
+        - expires_at
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        expires_at:
+          type: string
+          format: date-time
+          example: "2026-01-01T01:00:00Z"
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: logged out
+    AuthErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          example: invalid token
+    UserProfileResponse:
+      type: object
+      required:
+        - id
+        - email
+        - role
+        - created_at
+      properties:
+        id:
+          type: string
+          example: user-123
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        role:
+          type: string
+          example: user
+        created_at:
+          type: string
+          format: date-time
+          example: "2026-01-01T00:00:00Z"
+    ValidationErrorsResponse:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+          example:
+            - email is required
+            - password is required
+    GenericRequest:
+      type: object
+      additionalProperties: true
+    StatusResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: ok
+    HealthzResponse:
+      type: object
+      required:
+        - status
+        - checked_at
+        - components
+      properties:
+        status:
+          type: string
+          example: ok
+        checked_at:
+          type: string
+          format: date-time
+          example: "2026-01-01T00:00:00Z"
+        components:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentStatus'
+    ComponentStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          example: up
+        error:
+          type: string
+          example: "dial tcp 127.0.0.1:5432: connect refused"
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          example: error
+        message:
+          type: string
+          example: internal server error

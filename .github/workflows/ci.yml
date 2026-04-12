@@ -1,0 +1,286 @@
+# Branch protection setup (GitHub repo Settings → Branches → Add rule):
+# - Branch name pattern: main
+# - Require status checks: unit-tests, contract-tests, security
+# - Require branches to be up to date before merging
+# - integration-tests is advisory only (runs on main push + PRs to main)
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Start test services
+        run: docker compose -f docker-compose.test.yml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          set -euo pipefail
+          wait_for_healthy() {
+            local service="$1"
+            local max_attempts=60
+            local attempt=1
+            while [ "$attempt" -le "$max_attempts" ]; do
+              local container_id
+              container_id="$(docker compose -f docker-compose.test.yml ps -q "$service")"
+              if [ -n "$container_id" ]; then
+                local status
+                status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container_id")"
+                if [ "$status" = "healthy" ]; then
+                  return 0
+                fi
+              fi
+              sleep 1
+              attempt=$((attempt + 1))
+            done
+            echo "service '$service' did not become healthy" >&2
+            return 1
+          }
+          wait_for_healthy postgres
+          wait_for_healthy redis
+
+      - name: Backend tests with coverage
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
+          TEST_REDIS_URL: redis://localhost:6380
+        run: |
+          cd backend
+          go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic
+
+      - name: Frontend tests with coverage
+        run: |
+          cd frontend
+          bun install
+          bun test --coverage
+
+      - name: Upload backend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/backend-coverage.out
+
+      - name: Upload frontend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+
+      - name: Stop test services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Start test services
+        run: docker compose -f docker-compose.test.yml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          set -euo pipefail
+          wait_for_healthy() {
+            local service="$1"
+            local max_attempts=60
+            local attempt=1
+            while [ "$attempt" -le "$max_attempts" ]; do
+              local container_id
+              container_id="$(docker compose -f docker-compose.test.yml ps -q "$service")"
+              if [ -n "$container_id" ]; then
+                local status
+                status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container_id")"
+                if [ "$status" = "healthy" ]; then
+                  return 0
+                fi
+              fi
+              sleep 1
+              attempt=$((attempt + 1))
+            done
+            echo "service '$service' did not become healthy" >&2
+            return 1
+          }
+          wait_for_healthy postgres
+          wait_for_healthy redis
+
+      - name: Validate OpenAPI
+        run: |
+          cd backend
+          bash scripts/validate-openapi.sh
+
+      - name: Run backend contract tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
+        run: go test ./backend/internal/contract/...
+
+      - name: Validate frontend MSW handlers
+        run: |
+          bun install --cwd frontend
+          bun test frontend/src/lib/__tests__/api-client.test.ts
+
+      - name: Stop test services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
+
+  integration-tests:
+    if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.base_ref == 'main') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Start test services
+        run: docker compose -f docker-compose.test.yml up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          set -euo pipefail
+          wait_for_healthy() {
+            local service="$1"
+            local max_attempts=60
+            local attempt=1
+            while [ "$attempt" -le "$max_attempts" ]; do
+              local container_id
+              container_id="$(docker compose -f docker-compose.test.yml ps -q "$service")"
+              if [ -n "$container_id" ]; then
+                local status
+                status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container_id")"
+                if [ "$status" = "healthy" ]; then
+                  return 0
+                fi
+              fi
+              sleep 1
+              attempt=$((attempt + 1))
+            done
+            echo "service '$service' did not become healthy" >&2
+            return 1
+          }
+          wait_for_healthy postgres
+          wait_for_healthy redis
+
+      - name: Run integration tests
+        env:
+          TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
+          TEST_REDIS_URL: redis://localhost:6380
+        run: go test -tags integration ./backend/internal/integration/...
+
+      - name: Stop test services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install and run gosec
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          "$(go env GOPATH)/bin/gosec" -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...
+
+      - name: Frontend dependency audit
+        run: |
+          cd frontend
+          bun install
+          bun audit
+
+      - name: Secret scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify security headers on /healthz
+        run: |
+          set -euo pipefail
+          docker compose -f docker-compose.test.yml up -d
+
+          wait_for_healthy() {
+            local service="$1"
+            local max_attempts=60
+            local attempt=1
+            while [ "$attempt" -le "$max_attempts" ]; do
+              local container_id
+              container_id="$(docker compose -f docker-compose.test.yml ps -q "$service")"
+              if [ -n "$container_id" ]; then
+                local status
+                status="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' "$container_id")"
+                if [ "$status" = "healthy" ]; then
+                  return 0
+                fi
+              fi
+              sleep 1
+              attempt=$((attempt + 1))
+            done
+            echo "service '$service' did not become healthy" >&2
+            return 1
+          }
+
+          wait_for_healthy postgres
+          wait_for_healthy redis
+
+          pushd backend >/dev/null
+          go run . >/tmp/backend.log 2>&1 &
+          backend_pid=$!
+          popd >/dev/null
+
+          cleanup() {
+            kill "$backend_pid" >/dev/null 2>&1 || true
+            docker compose -f docker-compose.test.yml down
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5000/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          headers="$(curl -sS -D - -o /dev/null http://127.0.0.1:5000/healthz)"
+
+          echo "$headers" | grep -qi '^X-Content-Type-Options:'
+          echo "$headers" | grep -qi '^X-Frame-Options:'
+          echo "$headers" | grep -qi '^X-XSS-Protection:'
+          echo "$headers" | grep -qi '^Content-Security-Policy:'

@@ -1,0 +1,38 @@
+# A default .gitignore for Create Go App project.
+# Author: Kent Jasper Sisi <kntjspr@pm.me> (https://github.com/kntjspr)
+
+# macOS
+**/.DS_store
+
+# Go builds
+**/app/
+**/build/
+
+# Temporary files
+tmp/
+
+# Node.js dependencies
+**/node_modules/
+
+# Files
+hosts.ini
+*.out
+
+.gocache
+
+# Secrets and local environment files
+.env
+*.env
+
+# Reports and coverage artifacts
+coverage.out
+reports/
+
+# Build outputs
+frontend/.next/
+frontend/out/
+backend/tmp/
+.bootstrap-done
+
+# AI artifacts
+.codex

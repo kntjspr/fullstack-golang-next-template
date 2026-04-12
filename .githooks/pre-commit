@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "gitleaks not found. Install from https://gitleaks.io or run: brew install gitleaks" >&2
+  exit 1
+fi
+
+if [ ! -f .gitignore ] || ! grep -Eq '^\.env$|(^|/)\.env$' .gitignore; then
+  echo "warning: .env is not listed in .gitignore" >&2
+  exit 1
+fi
+
+if ! gitleaks protect --staged --config .gitleaks.toml; then
+  echo "Secret detected. Remove it before committing." >&2
+  exit 1
+fi

@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "dotenv-file"
+description = "Prevent committing .env files"
+path = '''(?i)(^|/)\.env$'''
+
+[allowlist]
+paths = [".env.example", "coverage.out", "reports/"]

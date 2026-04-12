@@ -24,6 +24,11 @@ func SpecHandler(w http.ResponseWriter, _ *http.Request) {
 
 // UIHandler serves a lightweight Redoc page for visual API docs.
 func UIHandler(w http.ResponseWriter, _ *http.Request) {
+	// relax script-src for this route only — redoc bundle loads from cdn.jsdelivr.net
+	w.Header().Set("Content-Security-Policy",
+		"default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; "+
+			"style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; "+
+			"worker-src blob:")
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(redocHTML(openAPITitle)))

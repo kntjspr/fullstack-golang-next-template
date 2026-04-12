@@ -1,4 +1,5 @@
-# go-app-fullstack-template
+# fullstack-golang-next-template
+
 
 production-ready full-stack template. go backend + next.js frontend. batteries included.
 

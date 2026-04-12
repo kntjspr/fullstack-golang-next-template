@@ -157,6 +157,23 @@ wait_for_redis() {
   exit 1
 }
 
+copy_env_if_missing() {
+  local src="$1"
+  local dest="$2"
+
+  if [ -f "$dest" ]; then
+    echo "skipping ${dest#$ROOT_DIR/} (already exists)"
+    return 0
+  fi
+
+  if [ ! -f "$src" ]; then
+    echo "error: ${src#$ROOT_DIR/} not found" >&2
+    exit 1
+  fi
+
+  cp "$src" "$dest"
+}
+
 run_backend_connectivity_check() {
   local backend_pid=0 started=0 ready=0 attempt
   local log_file
@@ -243,15 +260,9 @@ docker compose version >/dev/null
 
 echo "[2/11] Configuring environment"
 STEP="Configuring environment"
-if [ -f "$ROOT_DIR/.env" ]; then
-  echo "skipping .env (already exists)"
-else
-  if [ ! -f "$ROOT_DIR/.env.example" ]; then
-    echo "error: .env.example not found at repo root" >&2
-    exit 1
-  fi
-  cp "$ROOT_DIR/.env.example" "$ROOT_DIR/.env"
-fi
+copy_env_if_missing "$ROOT_DIR/.env.example" "$ROOT_DIR/.env"
+copy_env_if_missing "$ROOT_DIR/backend/.env.example" "$ROOT_DIR/backend/.env"
+copy_env_if_missing "$ROOT_DIR/frontend/.env.example" "$ROOT_DIR/frontend/.env"
 
 echo "[3/11] Installing git hooks"
 STEP="Installing git hooks"

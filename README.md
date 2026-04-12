@@ -70,6 +70,8 @@ completion writes `.bootstrap-done` locally (git-ignored) so the prompt never re
 
 ```bash
 cp .env.example .env
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 required variables:
@@ -87,12 +89,12 @@ required variables:
 make dev
 ```
 
-backend on `:8080`, frontend on `:3000`.
+backend on `:5000`, frontend on `:3000`.
 
 **5. open**
 
 - app: http://localhost:3000
-- api docs (swagger ui): http://localhost:8080/swagger/ui
+- api docs (swagger ui): http://localhost:5000/swagger/ui
 
 ---
 
@@ -176,7 +178,7 @@ ansible-playbook -i hosts.ini playbook.yml
 **6. after deploy**
 
 - nginx serves the frontend on ports 80/443
-- backend api runs on `:8080` behind nginx
+- backend api runs on `:5000` behind nginx
 - postgres and redis run as docker containers on the server
 
 ### first deploy checklist
@@ -361,7 +363,7 @@ inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use
 | `REDIS_URL` | required | redis connection string. |
 | `JWT_SECRET` | required | secret for signing auth tokens. generate with `openssl rand -hex 32`. |
 | `SERVER_HOST` | optional | backend bind host. default: `0.0.0.0`. |
-| `SERVER_PORT` | optional | backend api port. default: `8080`. |
+| `SERVER_PORT` | optional | backend api port. default: `5000`. |
 | `LOGGER_LEVEL` | optional | log verbosity: `debug`, `info`, `warn`, `error`. |
 | `LOGGER_PRETTY` | optional | pretty console log output (`true`/`false`). |
 | `SENTRY_DSN` | optional | sentry project dsn. leave empty to disable. |

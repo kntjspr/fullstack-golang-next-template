@@ -34,10 +34,13 @@ hooks:
 dev:
 	@bash -ceu ' \
 		set -euo pipefail; \
-		trap "kill 0" INT TERM EXIT; \
-		(cd backend && go run .) & \
-		(cd frontend && bun dev) & \
-		wait; \
+		(cd backend && go run .) & backend_pid=$$!; \
+		(cd frontend && bun dev) & frontend_pid=$$!; \
+		cleanup() { \
+			kill "$$backend_pid" "$$frontend_pid" >/dev/null 2>&1 || true; \
+		}; \
+		trap cleanup INT TERM EXIT; \
+		wait -n "$$backend_pid" "$$frontend_pid"; \
 	'
 
 test:

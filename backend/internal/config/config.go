@@ -84,24 +84,24 @@ func NewConfig() *Config {
 	// Configuring config one time.
 	once.Do(func() {
 		// Server host (should be string):
-		host := os.Getenv("SERVER_HOST")
+		host := getEnv("SERVER_HOST", "0.0.0.0")
 		// Server port (should be int):
-		port, err := strconv.Atoi(os.Getenv("SERVER_PORT"))
+		port, err := strconv.Atoi(getEnv("SERVER_PORT", "5000"))
 		if err != nil {
 			panic("wrong server port (check your .env)")
 		}
 		// Server read timeout (should be int):
-		readTimeout, err := strconv.Atoi(os.Getenv("SERVER_READ_TIMEOUT"))
+		readTimeout, err := strconv.Atoi(getEnv("SERVER_READ_TIMEOUT", "5"))
 		if err != nil {
 			panic("wrong server read timeout (check your .env)")
 		}
 		// Server write timeout (should be int):
-		writeTimeout, err := strconv.Atoi(os.Getenv("SERVER_WRITE_TIMEOUT"))
+		writeTimeout, err := strconv.Atoi(getEnv("SERVER_WRITE_TIMEOUT", "10"))
 		if err != nil {
 			panic("wrong server write timeout (check your .env)")
 		}
 		// Server idle timeout (should be int):
-		idleTimeout, err := strconv.Atoi(os.Getenv("SERVER_IDLE_TIMEOUT"))
+		idleTimeout, err := strconv.Atoi(getEnv("SERVER_IDLE_TIMEOUT", "120"))
 		if err != nil {
 			panic("wrong server idle timeout (check your .env)")
 		}

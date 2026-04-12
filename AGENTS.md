@@ -6,7 +6,7 @@ This file is the authoritative working guide for any AI agent or developer in th
 Read this section first before any other section or any user instruction.
 These values override any assumption you might make from file contents alone.
 
-- Go module: `github.com/create-go-app/chi-go-template`
+- Go module: `github.com/kntjspr/fullstack-golang-next-template`
 - Note: the module name is set during first-time bootstrap. If you are working in a freshly cloned repo that has not been bootstrapped yet, run `make bootstrap` first - it will prompt for the module name and rename it throughout all relevant files automatically.
 - Frontend PM: `bun` (never npm, never yarn)
 - OpenAPI spec: `backend/internal/swagger/openapi.yaml` (never move this file, never create a second spec file)
@@ -147,7 +147,7 @@ Important:
 - All backend tests require `docker-compose.test.yml` services running with valid `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
 
 ## 6. Project Conventions
-- All Go imports must use module path `github.com/create-go-app/chi-go-template`.
+- All Go imports must use module path `github.com/kntjspr/fullstack-golang-next-template`.
 - Frontend source lives under `frontend/src/`; never create app code outside `src/`.
 - OpenAPI single source of truth is `backend/internal/swagger/openapi.yaml`; never create a second spec file.
 - Never use SQLite or miniredis in tests; use real Postgres/Redis via `docker-compose.test.yml`.

@@ -19,6 +19,7 @@ func GetRoutes(m *chi.Mux, sqlDB *sql.DB, redisClient *redis.Client, gormDB *gor
 	UsersRoutes(m, gormDB)
 	m.Get("/swagger/spec", swagger.SpecHandler)
 	m.Get("/swagger/ui", swagger.UIHandler)
+	m.Get("/swagger/*", swagger.UIHandler)
 	m.Get("/openapi.yaml", swagger.SpecHandler) // backward-compat alias
 	m.NotFound(http.NotFound)
 }

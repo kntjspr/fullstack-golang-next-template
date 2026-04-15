@@ -20,6 +20,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -80,6 +84,7 @@ jobs:
         with:
           name: frontend-coverage
           path: frontend/coverage
+          if-no-files-found: ignore
 
       - name: Stop test services
         if: always()
@@ -95,11 +100,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -163,6 +167,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
 
       - name: Start test services
         run: docker compose -f docker-compose.test.yml up -d
@@ -213,6 +221,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -229,9 +241,9 @@ jobs:
           bun audit
 
       - name: Secret scanning
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          go install github.com/gitleaks/gitleaks/v8@latest
+          "$(go env GOPATH)/bin/gitleaks" detect --source . --verbose --redact
 
       - name: Verify security headers on /healthz
         env:

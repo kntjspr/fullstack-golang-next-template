@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -92,6 +93,44 @@ func TestRequestIDMiddleware(t *testing.T) {
 				t.Fatalf("context request id mismatch: got %q want %q", contextRequestID, responseRequestID)
 			}
 		})
+	}
+}
+
+func TestRequestIDFallbackWhenRandomFails(t *testing.T) {
+	originalRandRead := randRead
+	randRead = func([]byte) (int, error) {
+		return 0, errors.New("entropy unavailable")
+	}
+	t.Cleanup(func() {
+		randRead = originalRandRead
+	})
+
+	r := chi.NewRouter()
+	r.Use(RequestID)
+	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("X-Request-ID-From-Context", RequestIDFromContext(req.Context()))
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server := testutil.NewTestServer(r)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/") //nolint:noctx
+	if err != nil {
+		t.Fatalf("execute request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: got %d want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	requestID := resp.Header.Get(RequestIDHeader)
+	if requestID == "" {
+		t.Fatal("expected non-empty request id fallback")
+	}
+	if !strings.HasPrefix(requestID, "req-") {
+		t.Fatalf("expected fallback request id prefix, got %q", requestID)
 	}
 }
 

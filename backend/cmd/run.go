@@ -1,7 +1,14 @@
 package cmd
 
 import (
+	"context"
+	"errors"
 	"net/http"
+	"os"
+	"os/signal"
+	"strings"
+	"syscall"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -20,6 +27,33 @@ func Run(c *config.Config, r *chi.Mux) error {
 		IdleTimeout:  c.Server.IdleTimeout,
 	}
 
-	// Start server.
-	return server.ListenAndServe()
+	if !strings.EqualFold(strings.TrimSpace(c.StageStatus), "prod") {
+		return server.ListenAndServe()
+	}
+
+	serverErrors := make(chan error, 1)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serverErrors <- err
+			return
+		}
+		serverErrors <- nil
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+
+	select {
+	case err := <-serverErrors:
+		return err
+	case <-sigCh:
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		return <-serverErrors
+	}
 }

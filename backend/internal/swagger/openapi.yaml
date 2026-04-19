@@ -16,9 +16,6 @@ paths:
       operationId: getHealthStatus
       summary: Liveness endpoint
       description: Returns basic API liveness status. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
-      security:
-        - BearerAuth: []
-        - CookieAuth: []
       requestBody:
         required: false
         content:
@@ -77,9 +74,6 @@ paths:
       operationId: getReadinessStatus
       summary: Readiness endpoint
       description: Returns health state of app and enabled dependencies. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
-      security:
-        - BearerAuth: []
-        - CookieAuth: []
       requestBody:
         required: false
         content:
@@ -355,9 +349,6 @@ paths:
       operationId: getOpenAPISpec
       summary: OpenAPI YAML endpoint
       description: Returns the OpenAPI document served by the backend. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
-      security:
-        - BearerAuth: []
-        - CookieAuth: []
       requestBody:
         required: false
         content:
@@ -415,9 +406,6 @@ paths:
       operationId: getSwaggerUIAsset
       summary: Swagger UI endpoint
       description: Returns Swagger UI assets. If a JSON request body is sent, middleware.ValidateBody performs type and constraint validation and returns 422 with field-level errors when invalid.
-      security:
-        - BearerAuth: []
-        - CookieAuth: []
       parameters:
         - in: path
           name: path

@@ -37,10 +37,9 @@ func ValidateBody[T any](schema T) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Body = http.MaxBytesReader(w, r.Body, maxValidateBodyBytes)
 
-			payload := schema
 			decoder := json.NewDecoder(r.Body)
-
-			if err := decoder.Decode(&payload); err != nil {
+			payload, err := decodePayload(decoder, schema)
+			if err != nil {
 				var maxBytesErr *http.MaxBytesError
 				switch {
 				case errors.As(err, &maxBytesErr):
@@ -88,6 +87,38 @@ func ValidateBody[T any](schema T) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+func decodePayload[T any](decoder *json.Decoder, schema T) (T, error) {
+	var zero T
+
+	schemaType := reflect.TypeOf(schema)
+	if schemaType == nil {
+		return zero, errors.New("schema type cannot be nil")
+	}
+
+	if schemaType.Kind() == reflect.Pointer {
+		if schemaType.Elem().Kind() != reflect.Struct {
+			return zero, errors.New("schema pointer must point to struct")
+		}
+
+		payload := reflect.New(schemaType.Elem())
+		if err := decoder.Decode(payload.Interface()); err != nil {
+			return zero, err
+		}
+
+		typedPayload, ok := payload.Interface().(T)
+		if !ok {
+			return zero, errors.New("cannot cast decoded payload to schema type")
+		}
+		return typedPayload, nil
+	}
+
+	payload := schema
+	if err := decoder.Decode(&payload); err != nil {
+		return zero, err
+	}
+	return payload, nil
 }
 
 // GetValidatedBody returns previously validated request payload from context.

@@ -14,12 +14,12 @@ const (
 
 // Routes function to create router.
 func Routes(m *chi.Mux, sqlDB *sql.DB, redisClient *redis.Client) {
-	setDependencies(sqlDB, redisClient)
+	checks := newService(sqlDB, redisClient)
 
 	// Create group.
 	m.Route(groupURL, func(r chi.Router) {
 		r.Get(statusURL, getStatus) // get status route
 	})
 
-	m.Get("/healthz", getHealthz)
+	m.Get("/healthz", checks.getHealthz)
 }

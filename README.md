@@ -81,7 +81,7 @@ required variables:
 | `DATABASE_URL` | postgres connection string |
 | `REDIS_URL` | redis connection string |
 | `JWT_SECRET` | token signing secret — generate with `openssl rand -hex 32` |
-| `APP_ENV` | set to `development` locally |
+| `STAGE_STATUS` | backend runtime mode: `dev` locally, `prod` in production |
 
 **4. start dev**
 
@@ -136,6 +136,16 @@ go-project/
 
 ## deployment
 
+### topology assumptions (read this first)
+
+current automation is optimized for **single-host deployment**:
+
+- one server hosts frontend static files, backend api, nginx, postgres, and redis
+- nginx serves frontend and proxies selected backend routes
+- ansible playbook targets one inventory group (`cgapp_project`) and applies all roles to that same host
+
+if you plan to host frontend and backend on different servers/domains, read `docs/DEPLOYMENT_TOPOLOGIES.md` before using the default playbook.
+
 ### what you need
 
 - linux server (ubuntu 22.04 recommended) with ssh access
@@ -157,10 +167,12 @@ your.server.ip.here
 
 `playbook.yml` runs roles that provision: docker, nginx, postgres, redis, the backend service, and the frontend deployment artifacts. review if needed.
 
+for split-host deployments, do not run the default playbook unchanged. use the split-host checklist in `docs/DEPLOYMENT_TOPOLOGIES.md`.
+
 **3. set production env**
 
 ```bash
-APP_ENV=production
+STAGE_STATUS=prod
 ```
 
 **4. run the pre-deploy gate**
@@ -188,6 +200,18 @@ ansible-playbook -i hosts.ini playbook.yml
 - [ ] `make check` passes locally
 - [ ] ssh key configured for your server user
 - [ ] ports 80 and 443 open in server firewall
+
+### split-host delta checklist
+
+if frontend and backend are on different hosts/domains, add these before deploy:
+
+- [ ] `frontend/.env` sets `NEXT_PUBLIC_API_URL` to backend public origin (for example `https://api.example.com`)
+- [ ] backend enables and configures cors allowlist for frontend origin
+- [ ] auth strategy is chosen explicitly (cookie-based cross-site auth requires `SameSite=None; Secure`; bearer-header auth avoids cross-site cookie constraints)
+- [ ] nginx/frontend host config is updated so api routes are either proxied intentionally or not proxied at all
+- [ ] ansible roles/inventory are split so frontend host does not accidentally run backend/postgres/redis roles (and vice versa)
+- [ ] both frontend and backend are served over https
+- [ ] `docs/DEPLOYMENT_TOPOLOGIES.md` assumptions/limitations have been reviewed by the team
 
 ---
 
@@ -358,7 +382,7 @@ inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use
 
 | variable | required | description |
 |---|---|---|
-| `APP_ENV` | required | `development` or `production`. controls cookie secure flag and graceful shutdown behavior. |
+| `STAGE_STATUS` | required | `dev` or `prod`. controls cookie `Secure` flag and graceful shutdown mode. |
 | `DATABASE_URL` | required | full postgres connection string including host, port, user, password, and database name. |
 | `REDIS_URL` | required | redis connection string. |
 | `JWT_SECRET` | required | secret for signing auth tokens. generate with `openssl rand -hex 32`. |
@@ -367,12 +391,11 @@ inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use
 | `LOGGER_LEVEL` | optional | log verbosity: `debug`, `info`, `warn`, `error`. |
 | `LOGGER_PRETTY` | optional | pretty console log output (`true`/`false`). |
 | `SENTRY_DSN` | optional | sentry project dsn. leave empty to disable. |
-| `SENTRY_ENVIRONMENT` | optional | sentry environment tag, usually aligned with `APP_ENV`. |
+| `SENTRY_ENVIRONMENT` | optional | sentry environment tag, usually aligned with `STAGE_STATUS`. |
 | `SENTRY_RELEASE` | optional | release version tag sent to sentry. |
 | `SENTRY_TRACES_SAMPLE_RATE` | optional | trace sample rate for sentry performance events. |
 | `TEST_DATABASE_URL` | dev only | postgres url used by tests. local default points to port `5433`. |
 | `TEST_REDIS_URL` | dev only | redis url used by tests. local default points to port `6380`. |
-| `STAGE_STATUS` | optional | backend runtime mode (`dev` or `prod`). |
 | `SERVER_READ_TIMEOUT` | optional | http read timeout in seconds. |
 | `SERVER_WRITE_TIMEOUT` | optional | http write timeout in seconds. |
 | `SERVER_IDLE_TIMEOUT` | optional | http idle timeout in seconds. |

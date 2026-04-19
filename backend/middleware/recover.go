@@ -3,6 +3,7 @@ package middleware
 import (
 	"encoding/json"
 	"net/http"
+	"runtime/debug"
 )
 
 // Recover catches panics, logs them, and returns a JSON 500 response.
@@ -12,7 +13,7 @@ func Recover(logFn func(format string, args ...any)) func(http.Handler) http.Han
 			defer func() {
 				if recovered := recover(); recovered != nil {
 					if logFn != nil {
-						logFn("panic recovered: %v", recovered)
+						logFn("panic recovered: %v\n%s", recovered, debug.Stack())
 					}
 
 					w.Header().Set("Content-Type", "application/json")

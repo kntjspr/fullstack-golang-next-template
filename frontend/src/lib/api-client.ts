@@ -52,7 +52,10 @@ async function parseErrorMessage(response: Response): Promise<string> {
   }
 
   try {
-    const body = (await response.json()) as { message?: unknown };
+    const body = (await response.json()) as { message?: unknown; error?: unknown };
+    if (typeof body.error === "string" && body.error.length > 0) {
+      return body.error;
+    }
     if (typeof body.message === "string" && body.message.length > 0) {
       return body.message;
     }

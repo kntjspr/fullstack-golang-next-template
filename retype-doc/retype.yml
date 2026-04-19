@@ -1,0 +1,33 @@
+input: .
+output: .retype
+
+url: https://docs.example.com
+
+start:
+  # Uncomment the next line to try Retype Pro features
+  # pro: true
+
+branding:
+  title: Fullstack Golang Next Template
+  label: Documentation
+
+links:
+  - text: GitHub
+    link: https://github.com/kntjspr/fullstack-golang-next-template
+
+nav:
+  - Home: index.md
+  - Onboarding: onboarding.md
+  - Local Development: local-development.md
+  - Testing And Quality: testing-and-quality.md
+  - Deployment:
+      - Overview: deployment-overview.md
+      - Single Host: deployment-single-host.md
+      - Split Hosts: deployment-split-host.md
+  - Reference:
+      - Environment Variables: reference-environment.md
+      - Repository Map: reference-repository-map.md
+  - Troubleshooting: troubleshooting.md
+
+footer:
+  copyright: "&copy; Copyright {{ year }}. All rights reserved."

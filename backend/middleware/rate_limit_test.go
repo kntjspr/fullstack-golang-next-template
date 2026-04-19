@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -126,4 +127,48 @@ func requestStatusAndBody(t *testing.T, url string) (int, string) {
 	}
 
 	return resp.StatusCode, string(bodyBytes)
+}
+
+func TestRateLimit_UsesForwardedClientIP(t *testing.T) {
+	limiter := NewRateLimiter(1, time.Minute)
+
+	reqOne := httptest.NewRequest(http.MethodGet, "/", nil)
+	reqOne.RemoteAddr = "10.0.0.1:1234"
+	reqOne.Header.Set("X-Forwarded-For", "198.51.100.10")
+	if !limiter.allow(reqOne) {
+		t.Fatal("first forwarded request should be allowed")
+	}
+
+	reqTwo := httptest.NewRequest(http.MethodGet, "/", nil)
+	reqTwo.RemoteAddr = "10.0.0.1:1235"
+	reqTwo.Header.Set("X-Forwarded-For", "198.51.100.10")
+	if limiter.allow(reqTwo) {
+		t.Fatal("second request from same forwarded IP should be limited")
+	}
+}
+
+func TestRateLimit_EvictsStaleBuckets(t *testing.T) {
+	limiter := NewRateLimiter(2, 100*time.Millisecond)
+	start := time.Now().UTC()
+	limiter.nowFunc = func() time.Time { return start }
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.RemoteAddr = "203.0.113.1:4567"
+	if !limiter.allow(req) {
+		t.Fatal("initial request should be allowed")
+	}
+	if len(limiter.buckets) != 1 {
+		t.Fatalf("expected one bucket, got %d", len(limiter.buckets))
+	}
+
+	limiter.nowFunc = func() time.Time { return start.Add(250 * time.Millisecond) }
+	req2 := httptest.NewRequest(http.MethodGet, "/", nil)
+	req2.RemoteAddr = "203.0.113.2:4568"
+	if !limiter.allow(req2) {
+		t.Fatal("request after window should be allowed")
+	}
+
+	if len(limiter.buckets) != 1 {
+		t.Fatalf("expected stale bucket eviction, got %d buckets", len(limiter.buckets))
+	}
 }

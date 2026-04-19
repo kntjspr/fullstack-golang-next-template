@@ -169,6 +169,44 @@ func TestValidateBody_OversizedBody(t *testing.T) {
 	}
 }
 
+func TestValidateBody_PointerSchemaDoesNotReusePayload(t *testing.T) {
+	type pointerPayload struct {
+		Name string `json:"name" validate:"required"`
+	}
+
+	var seenPointers []*pointerPayload
+
+	r := chi.NewRouter()
+	r.Use(ValidateBody(&pointerPayload{}))
+	r.Post("/", func(w http.ResponseWriter, req *http.Request) {
+		payload := GetValidatedBody[*pointerPayload](req.Context())
+		seenPointers = append(seenPointers, payload)
+		w.WriteHeader(http.StatusOK)
+	})
+
+	server := testutil.NewTestServer(r)
+	defer server.Close()
+
+	resp1, body1 := doJSONRequest(t, server.URL+"/", map[string]any{"name": "first"})
+	defer resp1.Body.Close()
+	if resp1.StatusCode != http.StatusOK {
+		t.Fatalf("first request failed: status=%d body=%s", resp1.StatusCode, body1)
+	}
+
+	resp2, body2 := doJSONRequest(t, server.URL+"/", map[string]any{"name": "second"})
+	defer resp2.Body.Close()
+	if resp2.StatusCode != http.StatusOK {
+		t.Fatalf("second request failed: status=%d body=%s", resp2.StatusCode, body2)
+	}
+
+	if len(seenPointers) != 2 {
+		t.Fatalf("expected two payload pointers, got %d", len(seenPointers))
+	}
+	if seenPointers[0] == seenPointers[1] {
+		t.Fatal("expected distinct payload pointers per request")
+	}
+}
+
 func newValidationTestHandler(t *testing.T) chi.Router {
 	t.Helper()
 

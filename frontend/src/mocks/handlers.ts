@@ -33,6 +33,9 @@ const userProfileExample = {
   role: "user",
   created_at: "2026-01-01T00:00:00Z",
 };
+const authErrorExample = {
+  error: "invalid credentials",
+};
 
 function isObjectBody(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -58,6 +61,24 @@ async function validateOptionalBody(request: Request): Promise<Response | null> 
   }
 
   return validationErrorResponse();
+}
+
+async function parseJSONBody(request: Request): Promise<Record<string, unknown> | null> {
+  const rawBody = await request.text();
+  if (rawBody.trim().length === 0) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody);
+    if (isObjectBody(parsed)) {
+      return parsed;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
 }
 
 export const handlers = [
@@ -135,7 +156,47 @@ export const handlers = [
     });
   }),
 
-  http.post("/auth/login", async () => {
+  http.post("/auth/login", async ({ request }) => {
+    const body = await parseJSONBody(request);
+    if (!body) {
+      return validationErrorResponse();
+    }
+
+    const email = body.email;
+    const password = body.password;
+    if (typeof email !== "string" || email.trim().length === 0) {
+      return validationErrorResponse();
+    }
+    if (typeof password !== "string" || password.length === 0) {
+      return validationErrorResponse();
+    }
+
+    if (email !== "user@example.com" || password !== "correct-password") {
+      return HttpResponse.json(authErrorExample, { status: 401 });
+    }
+
+    return HttpResponse.json(loginResponseExample, {
+      status: 200,
+      headers: {
+        "Set-Cookie": "auth_token=mock-jwt-token; Path=/; HttpOnly; SameSite=Lax",
+      },
+    });
+  }),
+
+  http.post("/auth/refresh", async ({ request, cookies }) => {
+    const validationError = await validateOptionalBody(request);
+    if (validationError) {
+      return validationError;
+    }
+
+    const authHeader = request.headers.get("authorization") ?? "";
+    const cookieToken = cookies.auth_token ?? "";
+    const hasBearer = authHeader.startsWith("Bearer ") && authHeader.slice(7).trim().length > 0;
+    const hasCookie = cookieToken.trim().length > 0;
+    if (!hasBearer && !hasCookie) {
+      return HttpResponse.json({ error: "missing authorization" }, { status: 401 });
+    }
+
     return HttpResponse.json(loginResponseExample, {
       status: 200,
       headers: {

@@ -14,6 +14,7 @@ describe("API mocks", () => {
       "GET /users/me",
       "POST /auth/login",
       "POST /auth/logout",
+      "POST /auth/refresh",
     ]);
   });
 

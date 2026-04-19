@@ -16,11 +16,12 @@ func CreateTestUser(t *testing.T, db *gorm.DB, overrides map[string]any) models.
 	t.Helper()
 
 	now := time.Now().UTC().UnixNano()
+	defaultPasswordHash := mustHashPassword(t, "test-password")
 	user := models.User{
 		ID:           fmt.Sprintf("test-user-%d", now),
 		Email:        fmt.Sprintf("user-%d@example.com", now),
 		Name:         "Test User",
-		PasswordHash: "test-password-hash",
+		PasswordHash: defaultPasswordHash,
 		Role:         "user",
 	}
 
@@ -34,6 +35,9 @@ func CreateTestUser(t *testing.T, db *gorm.DB, overrides map[string]any) models.
 			user.Name, _ = value.(string)
 		case "password_hash":
 			user.PasswordHash, _ = value.(string)
+		case "password":
+			password, _ := value.(string)
+			user.PasswordHash = mustHashPassword(t, password)
 		case "role":
 			user.Role, _ = value.(string)
 		default:
@@ -64,4 +68,15 @@ func GenerateTestToken(t *testing.T, userID, role string) string {
 	}
 
 	return token
+}
+
+func mustHashPassword(t *testing.T, password string) string {
+	t.Helper()
+
+	hash, err := auth.HashPassword(password)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+
+	return hash
 }

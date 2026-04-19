@@ -136,3 +136,15 @@ func TestValidateToken(t *testing.T) {
 		})
 	}
 }
+
+func TestGenerateToken_MissingJWTSecret(t *testing.T) {
+	t.Setenv("JWT_SECRET", "")
+
+	_, err := GenerateToken("user-1", "user", time.Hour)
+	if err == nil {
+		t.Fatal("expected error when JWT_SECRET is missing")
+	}
+	if !errors.Is(err, ErrTokenConfig) {
+		t.Fatalf("unexpected error: got %v want %v", err, ErrTokenConfig)
+	}
+}

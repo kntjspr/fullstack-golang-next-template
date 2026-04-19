@@ -23,7 +23,7 @@ func setupAuthTestServer(t *testing.T, appEnv string) (baseURL, email, password 
 	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
 	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
 	if appEnv != "" {
-		t.Setenv("APP_ENV", appEnv)
+		t.Setenv("STAGE_STATUS", appEnv)
 	}
 
 	db := testutil.SetupTestDB(t)
@@ -34,10 +34,10 @@ func setupAuthTestServer(t *testing.T, appEnv string) (baseURL, email, password 
 	now := time.Now().UTC().UnixNano()
 	pass := "correct-password"
 	user := testutil.CreateTestUser(t, db, map[string]any{
-		"id":            fmt.Sprintf("router-user-%d", now),
-		"email":         fmt.Sprintf("router-user-%d@example.com", now),
-		"password_hash": pass,
-		"role":          "user",
+		"id":       fmt.Sprintf("router-user-%d", now),
+		"email":    fmt.Sprintf("router-user-%d@example.com", now),
+		"password": pass,
+		"role":     "user",
 	})
 
 	r := chi.NewRouter()
@@ -58,10 +58,10 @@ func TestAuthRoutes(t *testing.T) {
 
 	now := time.Now().UTC().UnixNano()
 	testUser := testutil.CreateTestUser(t, db, map[string]any{
-		"id":            fmt.Sprintf("router-user-%d", now),
-		"email":         fmt.Sprintf("router-user-%d@example.com", now),
-		"password_hash": "correct-password",
-		"role":          "user",
+		"id":       fmt.Sprintf("router-user-%d", now),
+		"email":    fmt.Sprintf("router-user-%d@example.com", now),
+		"password": "correct-password",
+		"role":     "user",
 	})
 
 	tests := []struct {
@@ -305,7 +305,7 @@ func TestLoginSetsHTTPOnlyCookie(t *testing.T) {
 }
 
 func TestLoginCookieSecureFlagInProd(t *testing.T) {
-	baseURL, email, password := setupAuthTestServer(t, "production")
+	baseURL, email, password := setupAuthTestServer(t, "prod")
 
 	body, err := json.Marshal(map[string]string{
 		"email":    email,
@@ -438,16 +438,72 @@ func TestLogoutReturns200WithoutAuth(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
+	rawBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read response body: %v", err)
+	}
+
 	if resp.StatusCode != http.StatusOK {
-		rawBody, _ := io.ReadAll(resp.Body)
 		t.Fatalf("unexpected status: got %d want %d body=%s", resp.StatusCode, http.StatusOK, rawBody)
 	}
+
+	if !strings.Contains(string(rawBody), "logged out") {
+		t.Fatalf("unexpected response body: %s", rawBody)
+	}
+}
+
+func TestRefreshTokenFromCookie(t *testing.T) {
+	t.Setenv("JWT_SECRET", "router-auth-secret")
+	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
+	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
+	t.Setenv("STAGE_STATUS", "dev")
+
+	db := testutil.SetupTestDB(t)
+	t.Cleanup(func() {
+		testutil.TeardownTestDB(t, db)
+	})
+
+	user := testutil.CreateTestUser(t, db, map[string]any{
+		"password": "correct-password",
+		"role":     "user",
+	})
+
+	loginToken, err := auth.GenerateToken(user.ID, user.Role, time.Hour)
+	if err != nil {
+		t.Fatalf("generate login token: %v", err)
+	}
+
+	r := chi.NewRouter()
+	RegisterAuthRoutes(r, db)
+	server := testutil.NewTestServer(r)
+	t.Cleanup(server.Close)
+
+	req, err := http.NewRequest(http.MethodPost, server.URL+"/auth/refresh", nil)
+	if err != nil {
+		t.Fatalf("create request: %v", err)
+	}
+	req.AddCookie(&http.Cookie{Name: "auth_token", Value: loginToken})
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("execute request: %v", err)
+	}
+	defer resp.Body.Close()
 
 	rawBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("read response body: %v", err)
 	}
-	if !strings.Contains(string(rawBody), "logged out") {
-		t.Fatalf("unexpected response body: %s", rawBody)
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status: got %d want %d body=%s", resp.StatusCode, http.StatusOK, rawBody)
+	}
+
+	var payload map[string]string
+	if err := json.Unmarshal(rawBody, &payload); err != nil {
+		t.Fatalf("decode response body: %v", err)
+	}
+	if payload["token"] == "" {
+		t.Fatal("expected refreshed token in response")
 	}
 }

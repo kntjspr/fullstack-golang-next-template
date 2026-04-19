@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kntjspr/fullstack-golang-next-template/cmd"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/cache"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/database"
@@ -23,8 +24,15 @@ import (
 
 func main() {
 	// Create config.
-	c := config.NewConfig()
+	c, err := config.NewConfig()
+	if err != nil {
+		log.Fatal().Err(err).Msg("cannot load config")
+	}
 	log.Logger = logger.New(c.Logger.Level, c.Logger.Pretty)
+
+	if err := auth.RequireJWTSecret(); err != nil {
+		log.Fatal().Err(err).Msg("JWT_SECRET is required")
+	}
 
 	sentryMiddleware, err := telemetry.InitSentry(c.Sentry)
 	if err != nil {

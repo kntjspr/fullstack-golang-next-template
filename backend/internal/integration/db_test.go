@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
 )
@@ -54,12 +55,16 @@ func TestUserCRUD(t *testing.T) {
 
 	userID := fmt.Sprintf("00000000-0000-0000-0000-%012d", time.Now().UTC().UnixNano()%1_000_000_000_000)
 	email := fmt.Sprintf("integration-%d@example.com", time.Now().UTC().UnixNano())
+	passwordHash, err := auth.HashPassword("integration-password")
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
 
 	user := models.User{
 		ID:           userID,
 		Email:        email,
 		Name:         "Integration User",
-		PasswordHash: "hashed-password",
+		PasswordHash: passwordHash,
 		Role:         "user",
 	}
 

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -13,12 +14,17 @@ type requestIDContextKey string
 
 const requestIDKey requestIDContextKey = "request_id"
 
+var randRead = rand.Read
+
 // RequestID injects request identifiers into request context and response headers.
 func RequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestID := r.Header.Get(RequestIDHeader)
 		if requestID == "" {
 			requestID = generateUUIDv4()
+			if requestID == "" {
+				requestID = fallbackRequestID()
+			}
 		}
 
 		ctx := context.WithValue(r.Context(), requestIDKey, requestID)
@@ -37,7 +43,7 @@ func RequestIDFromContext(ctx context.Context) string {
 
 func generateUUIDv4() string {
 	var b [16]byte
-	if _, err := rand.Read(b[:]); err != nil {
+	if _, err := randRead(b[:]); err != nil {
 		return ""
 	}
 
@@ -52,4 +58,8 @@ func generateUUIDv4() string {
 		b[8:10],
 		b[10:16],
 	)
+}
+
+func fallbackRequestID() string {
+	return fmt.Sprintf("req-%d", time.Now().UTC().UnixNano())
 }

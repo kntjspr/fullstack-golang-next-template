@@ -23,6 +23,8 @@ Key file locations:
 - Handler test pattern: `backend/internal/router/auth_test.go` (copy this pattern)
 - Middleware: `backend/middleware/`
 - Auth logic: `backend/internal/auth/token.go`
+- Password hashing: `backend/internal/auth/password.go` (always use `auth.HashPassword`/`auth.ComparePassword`)
+- Shared HTTP utilities: `backend/internal/httpapi/auth.go` (token extraction, JSON error writer — check here before writing new helpers)
 - DB connection: `backend/internal/database/postgres.go`
 - Redis connection: `backend/internal/cache/redis.go`
 - Config: `backend/internal/config/config.go`
@@ -34,7 +36,7 @@ Key file locations:
 This repository is a production-ready monorepo template for building and deploying a Go API with a Next.js frontend.
 
 Stack summary:
-- Backend: Go 1.22+, chi router, GORM, Postgres, Redis
+- Backend: Go 1.25+, chi router, GORM, Postgres, Redis
 - Frontend: Next.js 15-style App Router layout under `frontend/src/app/`, TypeScript, Bun
 - Infra/ops: Ansible roles in `roles/`, Docker-based test dependencies
 - Contract: OpenAPI spec at `backend/internal/swagger/openapi.yaml`
@@ -50,7 +52,7 @@ Repository structure:
 
 ## 2. Prerequisites
 Install these tools before working in this repo:
-- Go 1.22+
+- Go 1.25+
 - Bun (required frontend package manager; do not use npm or yarn)
 - Docker + Docker Compose
 - Make
@@ -251,3 +253,102 @@ The contract is always the source of truth, not ad-hoc implementation details.
 - `integration-tests`: runs on push to `main` and PRs targeting `main` only
 - All required jobs must pass before merge
 - Never merge while any required job is red
+
+## 14. Code Invariants
+
+These are non-negotiable implementation rules. Violating any of these is a blocking defect regardless of whether tests pass or CI is green.
+
+### Security
+- Passwords are ALWAYS stored as bcrypt hashes. Use `auth.HashPassword` to hash and `auth.ComparePassword` to verify. Never compare passwords with `==` or `!=`.
+- JWT signing secret MUST come from `JWT_SECRET` env var. Never hardcode a fallback secret. `auth.RequireJWTSecret()` is called at startup and fatals if missing.
+- Cookie `Secure` flag checks `STAGE_STATUS` (not `APP_ENV` or any other variable). `STAGE_STATUS=prod` → secure cookies, `STAGE_STATUS=dev` → insecure.
+- Never `TrimSpace` passwords. Trim emails only.
+- Config loading returns `(*Config, error)`. No panics in library code; panics are reserved for truly unrecoverable programmer errors.
+
+### Architecture
+- No mutable package-level state. Dependencies go through constructors or closures — see `healthcheck.newService` and handler closures in `router/auth.go`.
+- No `sync.Once` singletons for config. `NewConfig()` returns a fresh instance each call.
+- Shared auth utilities (token extraction, JSON error writing) live in `internal/httpapi/`. Do not duplicate these in `middleware/` or `router/`.
+  - `internal/httpapi` = cross-package HTTP utilities
+  - `backend/middleware/` = request middleware
+  - `backend/internal/router/` = handlers
+- Before writing any new auth-extraction or JSON-error helper, grep for it in `internal/httpapi/` first.
+
+### Error response format
+- Auth errors: `httpapi.WriteJSONError(w, status, message)` → `{"error": "..."}`
+- Validation errors: `{"error": "validation failed", "fields": [...]}`
+- The frontend `api-client.ts` checks `body.error` first, then `body.message`. Backend MUST use `"error"` as the key, not `"message"`.
+
+### Environment variables
+- Only two valid values for `STAGE_STATUS`: `dev` and `prod`. Config validation rejects anything else.
+- New env vars must appear in: `backend/.env.example`, AGENTS.md §3, and `retype-doc/reference-environment.md` — all three in the same commit.
+- Handlers should not call `os.Getenv` directly. Route through `internal/config/config.go`. The one known exception is cookie `Secure` logic in `router/auth.go`.
+
+### Middleware
+- Rate limiter evicts stale entries via `cleanupStaleBuckets`. Verify this runs when touching `middleware/rate_limit.go`.
+- Rate limiter resolves client IP from `CF-Connecting-IP` → `X-Forwarded-For` → `X-Real-IP` → `RemoteAddr`. Do not regress to `RemoteAddr` only.
+- Panic recovery MUST log `debug.Stack()`. Do not remove the stack trace.
+- Request ID falls back to a timestamp-based ID when RNG fails. Never return an empty request ID.
+- CORS allowed methods are the hardcoded `allowedCORSMethods` constant. Do not reflect `Access-Control-Request-Method` from the client.
+
+### Docker
+- Dockerfile Go version must match `go.mod`. If you bump one, bump the other.
+- Do not copy `.env` into Docker images (known tech debt in current `Dockerfile` line 22).
+
+## 15. Self-Review Checklist
+
+Every change must pass all applicable items before commit. This is mandatory.
+
+### Every change
+- [ ] `make test` passes
+- [ ] `make validate-contracts` passes
+- [ ] No new `os.Getenv` calls outside `config.go` (except known exceptions)
+- [ ] No new auth-extraction or JSON-error helper functions — check `internal/httpapi/` first
+- [ ] No mutable package-level variables (`var x = &thing{}` at package scope)
+- [ ] New generated/build output files are covered by `.gitignore`
+
+### Changes that touch auth
+- [ ] Passwords use `auth.HashPassword` / `auth.ComparePassword` — never `==` comparison
+- [ ] Test fixtures use `testutil.CreateTestUser` with `"password"` override key (not `"password_hash"` with plaintext)
+- [ ] Token generation uses `auth.GenerateToken` — no direct JWT construction
+- [ ] Cookie secure flag reads `STAGE_STATUS`, not `APP_ENV`
+- [ ] Both Bearer header and cookie auth paths have tests
+
+### Changes that touch API endpoints
+- [ ] OpenAPI spec updated BEFORE implementation
+- [ ] `security:` block is present on protected routes and absent (or `security: []`) on public routes
+- [ ] MSW handlers in `frontend/src/mocks/handlers.ts` updated with body validation
+- [ ] Backend error responses use `{"error": "..."}` not `{"message": "..."}`
+- [ ] No dead 401/403 responses documented for routes without auth middleware
+
+### Changes that touch middleware
+- [ ] CORS does not reflect `Access-Control-Request-Method`
+- [ ] Rate limiter `cleanupStaleBuckets` still runs
+- [ ] IP extraction chain is preserved (CF > XFF > XRI > RemoteAddr)
+- [ ] Panic recovery logs `debug.Stack()`
+
+### Changes that touch config
+- [ ] `NewConfig` returns `(*Config, error)`, no panics
+- [ ] No `sync.Once`
+- [ ] New env vars added to `.env.example`, AGENTS.md §3, and `retype-doc/reference-environment.md`
+
+### Go version or Dockerfile changes
+- [ ] `go.mod` and `Dockerfile` Go version match
+- [ ] AGENTS.md §1 and §2 updated
+- [ ] `retype-doc/onboarding.md` updated
+
+## 16. Documentation Sync
+
+Code behavior changes require documentation updates in the same commit. Use this table:
+
+| What changed | Files to update |
+|---|---|
+| New or changed env var | `backend/.env.example`, AGENTS.md §3, `retype-doc/reference-environment.md` |
+| New backend package | AGENTS.md §0 key file locations, `retype-doc/reference-repository-map.md`, `docs/ARCHITECTURE.md` |
+| New API endpoint | `openapi.yaml`, `frontend/src/mocks/handlers.ts` |
+| Auth behavior change | AGENTS.md §14 security invariants, `retype-doc/troubleshooting.md`, `docs/ARCHITECTURE.md` auth flow section |
+| Go version bump | `go.mod`, `backend/Dockerfile`, AGENTS.md §1 and §2, `retype-doc/onboarding.md` |
+| Middleware behavior change | AGENTS.md §14 middleware invariants, `docs/ARCHITECTURE.md` middleware section |
+| New shared utility package | AGENTS.md §14 architecture invariants, `retype-doc/reference-repository-map.md` |
+
+If the documentation is not updated with the code change, the change is incomplete.

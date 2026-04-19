@@ -5,6 +5,11 @@ import (
 	"strings"
 )
 
+const (
+	allowedCORSMethods = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+	defaultCORSHeaders = "Authorization,Content-Type"
+)
+
 // CORS applies CORS headers for explicitly allowed origins.
 func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 	allowed := map[string]struct{}{}
@@ -27,17 +32,11 @@ func CORS(allowedOrigins []string) func(http.Handler) http.Handler {
 			}
 
 			if r.Method == http.MethodOptions && isAllowed {
-				requestMethod := r.Header.Get("Access-Control-Request-Method")
-				if requestMethod == "" {
-					requestMethod = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-				} else {
-					requestMethod += ",OPTIONS"
-				}
-				w.Header().Set("Access-Control-Allow-Methods", requestMethod)
+				w.Header().Set("Access-Control-Allow-Methods", allowedCORSMethods)
 
 				requestHeaders := r.Header.Get("Access-Control-Request-Headers")
 				if requestHeaders == "" {
-					requestHeaders = "Authorization,Content-Type"
+					requestHeaders = defaultCORSHeaders
 				}
 				w.Header().Set("Access-Control-Allow-Headers", requestHeaders)
 				w.WriteHeader(http.StatusNoContent)

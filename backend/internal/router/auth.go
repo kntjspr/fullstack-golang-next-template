@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
+	"github.com/kntjspr/fullstack-golang-next-template/internal/httpapi"
 	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
 )
 
@@ -53,7 +54,6 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 		}
 
 		payload.Email = strings.TrimSpace(payload.Email)
-		payload.Password = strings.TrimSpace(payload.Password)
 
 		validationErrors := make([]string, 0, 2)
 		if payload.Email == "" {
@@ -73,7 +73,7 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		if user.PasswordHash != payload.Password {
+		if err := auth.ComparePassword(user.PasswordHash, payload.Password); err != nil {
 			writeAuthError(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
@@ -96,7 +96,7 @@ func loginHandler(db *gorm.DB) http.HandlerFunc {
 
 func refreshHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		token, err := tokenFromRequest(r)
+		token, err := httpapi.ExtractAuthToken(r)
 		if err != nil {
 			writeAuthError(w, http.StatusUnauthorized, err.Error())
 			return
@@ -138,31 +138,6 @@ func logoutHandler() http.HandlerFunc {
 	}
 }
 
-func tokenFromRequest(r *http.Request) (string, error) {
-	authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
-	if authHeader != "" {
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return "", errors.New("invalid authorization header")
-		}
-
-		token := strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
-		if token == "" {
-			return "", errors.New("invalid authorization header")
-		}
-		return token, nil
-	}
-
-	cookie, err := r.Cookie("auth_token")
-	if err == nil {
-		token := strings.TrimSpace(cookie.Value)
-		if token != "" {
-			return token, nil
-		}
-	}
-
-	return "", errors.New("missing authorization")
-}
-
 func setAuthCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
 	maxAge := int(time.Until(expiresAt).Seconds())
 	if maxAge < 0 {
@@ -174,7 +149,7 @@ func setAuthCookie(w http.ResponseWriter, token string, expiresAt time.Time) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production"),
+		Secure:   strings.EqualFold(strings.TrimSpace(os.Getenv("STAGE_STATUS")), "prod"),
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   maxAge,
 		Expires:  expiresAt.UTC(),
@@ -187,7 +162,7 @@ func clearAuthCookie(w http.ResponseWriter) {
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production"),
+		Secure:   strings.EqualFold(strings.TrimSpace(os.Getenv("STAGE_STATUS")), "prod"),
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   -1,
 		Expires:  time.Unix(0, 0).UTC(),
@@ -212,7 +187,5 @@ func writeValidationErrors(w http.ResponseWriter, validationErrors []string) {
 }
 
 func writeAuthError(w http.ResponseWriter, status int, message string) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+	httpapi.WriteJSONError(w, status, message)
 }

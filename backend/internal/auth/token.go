@@ -9,11 +9,10 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const defaultJWTSecret = "test-secret"
-
 var (
 	ErrTokenExpired = errors.New("token expired")
 	ErrTokenInvalid = errors.New("token invalid")
+	ErrTokenConfig  = errors.New("token configuration error")
 )
 
 // Claims represents validated token claims.
@@ -47,8 +46,13 @@ func GenerateToken(userID, role string, ttl ...time.Duration) (string, error) {
 		"exp":  now.Add(tokenTTL).Unix(),
 	}
 
+	secret, err := signingSecret()
+	if err != nil {
+		return "", err
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(signingSecret()))
+	return token.SignedString([]byte(secret))
 }
 
 // ValidateToken validates a signed JWT and returns decoded claims.
@@ -57,11 +61,16 @@ func ValidateToken(tokenString string) (*Claims, error) {
 		return nil, ErrTokenInvalid
 	}
 
+	secret, err := signingSecret()
+	if err != nil {
+		return nil, ErrTokenInvalid
+	}
+
 	parsedToken, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrTokenInvalid
 		}
-		return []byte(signingSecret()), nil
+		return []byte(secret), nil
 	})
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
@@ -92,10 +101,6 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}
 
 	expiresAt := time.Unix(expUnix, 0).UTC()
-	if time.Now().UTC().After(expiresAt) {
-		return nil, ErrTokenExpired
-	}
-
 	return &Claims{
 		UserID:    userID,
 		Role:      role,
@@ -104,13 +109,19 @@ func ValidateToken(tokenString string) (*Claims, error) {
 	}, nil
 }
 
-func signingSecret() string {
+// RequireJWTSecret validates token signing configuration at startup.
+func RequireJWTSecret() error {
+	_, err := signingSecret()
+	return err
+}
+
+func signingSecret() (string, error) {
 	secret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
 	if secret == "" {
-		return defaultJWTSecret
+		return "", ErrTokenConfig
 	}
 
-	return secret
+	return secret, nil
 }
 
 func unixFromClaim(value any) (int64, bool) {

@@ -29,18 +29,19 @@ Component roles:
 ## Backend Architecture
 Package responsibilities:
 - `backend/main.go`: process wiring, config bootstrap, middleware setup, server start.
-- `backend/cmd/`: HTTP server runtime setup.
-- `backend/internal/config/`: env-driven configuration loading.
+- `backend/cmd/`: HTTP server runtime setup (graceful shutdown in prod mode).
+- `backend/internal/config/`: env-driven configuration loading (`NewConfig` returns `(*Config, error)`).
 - `backend/internal/router/`: route registration and handlers.
 - `backend/internal/router/healthcheck/`: health/readiness endpoints.
-- `backend/internal/auth/`: JWT token generation and validation.
+- `backend/internal/auth/`: JWT token generation/validation and bcrypt password hashing.
+- `backend/internal/httpapi/`: shared cross-package HTTP utilities — token extraction (`ExtractAuthToken`) and JSON error writing (`WriteJSONError`). Check here before writing new auth helpers.
 - `backend/internal/database/`: GORM/Postgres connection lifecycle.
 - `backend/internal/cache/`: Redis connection lifecycle.
 - `backend/internal/models/`: persistence models shared with GORM.
 - `backend/internal/swagger/`: embedded OpenAPI spec serving.
-- `backend/internal/testutil/`: test DB/Redis setup helpers.
+- `backend/internal/testutil/`: test DB/Redis setup helpers and fixture builders.
 - `backend/internal/contract/`: OpenAPI/router contract tests.
-- `backend/middleware/`: reusable request middleware (security, auth, validation, etc).
+- `backend/middleware/`: reusable request middleware (security, auth, validation, rate limiting, CORS, recover).
 - `backend/migrations/`: production SQL migrations.
 
 Request lifecycle:
@@ -59,9 +60,11 @@ Middleware order and rationale:
 This order ensures response hardening, traceability, load protection, and access control happen predictably.
 
 Auth flow:
-- `GenerateToken` in `internal/auth/token.go` signs JWTs (current implementation: HS256 via `JWT_SECRET`).
-- `ValidateToken` verifies signature, expiry, and required claims (`sub`, `role`).
-- Refresh flow issues short-lived replacement tokens (see `internal/router/auth.go` refresh handler pattern).
+- `JWT_SECRET` env var is required at startup. `auth.RequireJWTSecret()` is called in `main.go` and fatals if unset — there is no hardcoded fallback.
+- `GenerateToken` in `internal/auth/token.go` signs JWTs (HS256). `ValidateToken` verifies signature, expiry, and required claims (`sub`, `role`).
+- Login: user password is verified with `auth.ComparePassword` (bcrypt). Passwords are stored as bcrypt hashes via `auth.HashPassword`. Never compared with `==`.
+- Refresh flow: existing valid token is re-validated, then a new token with a fresh TTL is issued (see `internal/router/auth.go` refresh handler).
+- Auth extraction: both middleware and handlers use `httpapi.ExtractAuthToken` (Bearer header priority, `auth_token` cookie fallback). Do not duplicate this logic.
 
 GORM models and migrations:
 - Test setup uses GORM `AutoMigrate` in `internal/testutil/SetupTestDB` for rapid schema alignment.
@@ -175,6 +178,10 @@ Ansible deployment overview:
 - `roles/backend`: Go API deployment and service management.
 - `roles/frontend`: Next.js frontend deployment.
 - `roles/nginx`: reverse proxy and public ingress configuration.
+
+Deployment topology note:
+- Current Ansible defaults are single-host oriented.
+- For split frontend/backend hosting, follow `docs/DEPLOYMENT_TOPOLOGIES.md`.
 
 Environment promotion:
 - Local -> Staging -> Production via environment-specific `.env` values and inventory/playbook execution.

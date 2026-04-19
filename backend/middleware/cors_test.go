@@ -65,6 +65,21 @@ func TestCORSMiddleware(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:   "TestCORS_PreflightDoesNotReflectUnsupportedMethod",
+			method: http.MethodOptions,
+			origin: "https://allowed.example.com",
+			headers: map[string]string{
+				"Access-Control-Request-Method": "PROPFIND",
+			},
+			assertFunc: func(t *testing.T, resp *http.Response, _ string) {
+				t.Helper()
+				methods := resp.Header.Get("Access-Control-Allow-Methods")
+				if strings.Contains(methods, "PROPFIND") {
+					t.Fatalf("preflight methods should not reflect unsupported request method, got %q", methods)
+				}
+			},
+		},
 	}
 
 	for _, tc := range tests {

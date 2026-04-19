@@ -39,8 +39,8 @@ func TestOpenAPIContract(t *testing.T) {
 	defer testutil.TeardownTestDB(t, db)
 
 	testUser := testutil.CreateTestUser(t, db, map[string]any{
-		"password_hash": "contract-password",
-		"role":          "user",
+		"password": "contract-password",
+		"role":     "user",
 	})
 	authToken, err := auth.GenerateToken(testUser.ID, testUser.Role)
 	if err != nil {

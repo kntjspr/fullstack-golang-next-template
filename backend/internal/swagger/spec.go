@@ -1,12 +1,13 @@
 package swagger
 
 import (
-	"bytes"
 	_ "embed"
 	"fmt"
 	"html"
 	"net/http"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -58,31 +59,20 @@ func redocHTML(title string) string {
 }
 
 func extractOpenAPITitle(spec []byte) string {
-	inInfo := false
-
-	for _, rawLine := range bytes.Split(spec, []byte("\n")) {
-		line := string(rawLine)
-		trimmed := strings.TrimSpace(line)
-
-		if trimmed == "info:" {
-			inInfo = true
-			continue
-		}
-
-		if inInfo && line != "" && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
-			inInfo = false
-		}
-
-		if !inInfo || !strings.HasPrefix(trimmed, "title:") {
-			continue
-		}
-
-		title := strings.TrimSpace(strings.TrimPrefix(trimmed, "title:"))
-		title = strings.Trim(title, `"'`)
-		if title != "" {
-			return title
-		}
+	var parsed struct {
+		Info struct {
+			Title string `yaml:"title"`
+		} `yaml:"info"`
 	}
 
-	return "API Docs"
+	if err := yaml.Unmarshal(spec, &parsed); err != nil {
+		return "API Docs"
+	}
+
+	title := strings.TrimSpace(parsed.Info.Title)
+	if title == "" {
+		return "API Docs"
+	}
+
+	return title
 }

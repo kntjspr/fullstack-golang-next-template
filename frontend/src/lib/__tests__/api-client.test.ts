@@ -131,6 +131,26 @@ describe("ApiClient", () => {
     });
   });
 
+  it("TestGet_UsesErrorFieldFromBackend", async () => {
+    const client = new ApiClient();
+
+    server.use(
+      http.get("http://localhost:3000/healthz", () =>
+        HttpResponse.json(
+          { error: "invalid token" },
+          {
+            status: 401,
+          },
+        ),
+      ),
+    );
+
+    await expect(client.get("/healthz")).rejects.toMatchObject({
+      status: 401,
+      message: "invalid token",
+    });
+  });
+
   it("TestPost_SendsJSON", async () => {
     const client = new ApiClient();
     const payload = { email: "hello@example.com" };

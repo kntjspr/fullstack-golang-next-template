@@ -25,9 +25,6 @@ jobs:
             backend/go.sum
             go.work.sum
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
       - name: Start test services
         run: docker compose -f docker-compose.test.yml up -d
 
@@ -67,24 +64,11 @@ jobs:
           cd backend
           go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic
 
-      - name: Frontend tests with coverage
-        run: |
-          cd frontend
-          bun install
-          bun test --coverage
-
       - name: Upload backend coverage artifact
         uses: actions/upload-artifact@v6
         with:
           name: backend-coverage
           path: backend/backend-coverage.out
-
-      - name: Upload frontend coverage artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: frontend-coverage
-          path: frontend/coverage
-          if-no-files-found: ignore
 
       - name: Stop test services
         if: always()
@@ -104,9 +88,6 @@ jobs:
             backend/go.mod
             backend/go.sum
             go.work.sum
-
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
 
       - name: Start test services
         run: docker compose -f docker-compose.test.yml up -d
@@ -145,12 +126,8 @@ jobs:
       - name: Run backend contract tests
         env:
           TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
+          TEST_REDIS_URL: redis://localhost:6380
         run: go test ./backend/internal/contract/...
-
-      - name: Validate frontend MSW handlers
-        run: |
-          bun install --cwd frontend
-          bun test frontend/src/lib/__tests__/api-client.test.ts
 
       - name: Stop test services
         if: always()
@@ -226,19 +203,10 @@ jobs:
             backend/go.sum
             go.work.sum
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
       - name: Install and run gosec
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           "$(go env GOPATH)/bin/gosec" -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...
-
-      - name: Frontend dependency audit
-        run: |
-          cd frontend
-          bun install
-          bun audit
 
       - name: Secret scanning
         run: |
@@ -247,14 +215,28 @@ jobs:
 
       - name: Verify security headers on /healthz
         env:
-          APP_ENV: development
-          DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
-          REDIS_URL: redis://localhost:6380
-          JWT_SECRET: ci-test-secret-not-for-production
+          STAGE_STATUS: dev
+          SERVER_HOST: 127.0.0.1
           SERVER_PORT: 5000
           SERVER_READ_TIMEOUT: 30
           SERVER_WRITE_TIMEOUT: 30
           SERVER_IDLE_TIMEOUT: 60
+          LOGGER_LEVEL: error
+          LOGGER_PRETTY: false
+          DB_ENABLE: true
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5433
+          DB_USER: postgres
+          DB_PASSWORD: test
+          DB_NAME: testdb
+          DB_SSL_MODE: disable
+          DB_TIMEZONE: UTC
+          REDIS_ENABLE: true
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6380
+          REDIS_PASSWORD: ""
+          REDIS_DB: 0
+          JWT_SECRET: ci-test-secret-not-for-production
         run: |
           set -euo pipefail
           docker compose -f docker-compose.test.yml up -d

@@ -13,8 +13,4 @@ fi
 echo "Running gosec on backend..."
 gosec -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...
 
-echo "Running bun audit in frontend..."
-(
-  cd frontend
-  bun audit
-)
+

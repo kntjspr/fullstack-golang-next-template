@@ -1,7 +1,7 @@
 # fullstack-golang-next-template
 
 
-production-ready full-stack template. go backend + next.js frontend. batteries included.
+production-ready full-stack template. go backend. batteries included.
 
 ---
 
@@ -15,12 +15,6 @@ production-ready full-stack template. go backend + next.js frontend. batteries i
 - `redis` — cache and ephemeral state
 - jwt authentication
 - single openapi spec at `backend/internal/swagger/openapi.yaml`
-
-**frontend**
-
-- next.js 15 with typescript
-- bun as package manager and runtime
-- msw (mock service worker) for request-level api mocking in tests — no brittle function stubs
 
 **infrastructure**
 
@@ -40,7 +34,6 @@ production-ready full-stack template. go backend + next.js frontend. batteries i
 ## prerequisites
 
 - **go 1.22+** — https://go.dev/dl/
-- **bun** — https://bun.sh
 - **docker desktop** — https://www.docker.com/products/docker-desktop/
 - **make** — preinstalled on macos/linux; windows: `choco install make` or use wsl
 - **deployment only**: a linux server with ssh access
@@ -71,7 +64,6 @@ completion writes `.bootstrap-done` locally (git-ignored) so the prompt never re
 ```bash
 cp .env.example .env
 cp backend/.env.example backend/.env
-cp frontend/.env.example frontend/.env
 ```
 
 required variables:
@@ -89,11 +81,10 @@ required variables:
 make dev
 ```
 
-backend on `:5000`, frontend on `:3000`.
+backend on `:5000`.
 
 **5. open**
 
-- app: http://localhost:3000
 - api docs (swagger ui): http://localhost:5000/swagger/ui
 
 ---
@@ -119,11 +110,6 @@ go-project/
 │   ├── middleware/             # shared http middleware (auth, rate limit, headers, validation)
 │   ├── migrations/             # sql migration files
 │   └── main.go                 # backend entrypoint
-├── frontend/                   # next.js application
-│   └── src/
-│       ├── app/                # app router pages, layout, sitemap, robots
-│       ├── lib/                # api client and shared frontend utilities
-│       └── mocks/              # msw api mocks used in tests
 ├── roles/                      # ansible deployment roles
 ├── docs/                       # architecture docs, adrs, and security notes
 ├── scripts/                    # automation scripts (bootstrap, checks, integration helpers)
@@ -223,8 +209,7 @@ if frontend and backend are on different hosts/domains, add these before deploy:
 4. write the handler
 5. run `make test` — confirm it passes
 6. run `make validate-contracts` — confirm it passes
-7. add the msw mock in `frontend/src/mocks/handlers.ts`
-8. commit
+7. commit
 
 ---
 
@@ -271,25 +256,6 @@ mcp and programmatic clients use the same bearer header pattern.
 
 ## customization
 
-### analytics — umami
-
-privacy-friendly, self-hostable, gdpr-compliant.
-
-file: `frontend/src/app/layout.tsx` → inside the `<head>` of root layout
-
-```html
-<script
-  defer
-  src="https://your-umami-instance.com/script.js"
-  data-website-id="your-website-id"
-/>
-```
-
-replace `src` with your umami instance url and `data-website-id` with your dashboard id.  
-self-host docs: https://umami.is/docs/install
-
----
-
 ### error tracking — sentry
 
 **backend** (already wired)
@@ -304,17 +270,6 @@ SENTRY_RELEASE=v1.0.0
 
 dsn location: sentry dashboard → project → settings → client keys
 
-**frontend** (not wired yet)
-
-```bash
-cd frontend && bun add @sentry/nextjs
-bunx @sentry/wizard@latest -i nextjs
-```
-
-set in `.env`: `NEXT_PUBLIC_SENTRY_DSN=your-dsn`  
-docs: https://docs.sentry.io/platforms/javascript/guides/nextjs/
-
----
 
 ### email — resend
 
@@ -333,7 +288,6 @@ docs: https://resend.com/docs/send-with-go
 no payment code exists yet. add it with:
 
 - backend webhook handler: `backend/internal/router/webhook.go`
-- frontend checkout page: `frontend/src/app/checkout/page.tsx`
 - set in `.env`:
 
 ```bash
@@ -412,8 +366,6 @@ inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use
 | `REDIS_PORT` | optional | redis port when `REDIS_ENABLE=true`. |
 | `REDIS_PASSWORD` | optional | redis password when required. |
 | `REDIS_DB` | optional | redis db index. |
-| `NEXT_PUBLIC_UMAMI_WEBSITE_ID` | optional | umami site identifier used by the frontend script. |
-| `NEXT_PUBLIC_UMAMI_SCRIPT_URL` | optional | umami script url loaded by the frontend. |
 
 copy `.env.example` to `.env` and fill in all required variables before running `make dev` or `make bootstrap`. never commit `.env` — blocked by the pre-commit hook.
 

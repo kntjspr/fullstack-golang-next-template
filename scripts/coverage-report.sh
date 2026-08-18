@@ -72,7 +72,7 @@ backend_output="$(mktemp)"
 GOFLAGS="" go test ./... -coverprofile=coverage.out -covermode=atomic | tee "$backend_output"
 backend_coverage="$(
   awk '
-    /^ok[[:space:]]+github.com\/create-go-app\/chi-go-template/ && /coverage:/ {
+    /^ok[[:space:]]+/ && /coverage:/ {
       for (i = 1; i <= NF; i++) {
         if ($i == "coverage:") {
           value = $(i+1)
@@ -96,37 +96,14 @@ backend_coverage="$(
 rm -f "$backend_output"
 popd >/dev/null
 
-pushd "$ROOT_DIR/frontend" >/dev/null
-frontend_output="$(mktemp)"
-bun test --coverage 2>&1 | tee "$frontend_output"
-frontend_coverage="$(
-  sed -E 's/\x1B\[[0-9;]*[mK]//g' "$frontend_output" | awk -F'|' '
-    /All files/ {
-      gsub(/ /, "", $3)
-      print $3
-      exit
-    }
-  '
-)"
-rm -f "$frontend_output"
-popd >/dev/null
-
 if [ -z "$backend_coverage" ]; then
   backend_coverage="0.00"
 fi
-if [ -z "$frontend_coverage" ]; then
-  frontend_coverage="0.00"
-fi
 
 backend_status="PASS"
-frontend_status="PASS"
 
 if ! awk -v c="$backend_coverage" -v t="$BACKEND_THRESHOLD" 'BEGIN { exit !(c+0 >= t+0) }'; then
   backend_status="FAIL"
-fi
-
-if ! awk -v c="$frontend_coverage" -v t="$FRONTEND_THRESHOLD" 'BEGIN { exit !(c+0 >= t+0) }'; then
-  frontend_status="FAIL"
 fi
 
 mkdir -p "$REPORT_DIR"
@@ -134,9 +111,8 @@ mkdir -p "$REPORT_DIR"
 {
   printf "Component | Covered | Threshold | Status\n"
   printf "backend   | %s%% | %s%%       | %s\n" "$backend_coverage" "$BACKEND_THRESHOLD" "$backend_status"
-  printf "frontend  | %s%% | %s%%       | %s\n" "$frontend_coverage" "$FRONTEND_THRESHOLD" "$frontend_status"
 } | tee "$REPORT_FILE"
 
-if [ "$backend_status" = "FAIL" ] || [ "$frontend_status" = "FAIL" ]; then
+if [ "$backend_status" = "FAIL" ]; then
   exit 1
 fi

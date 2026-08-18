@@ -6,7 +6,6 @@
 
 .PHONY: help bootstrap hooks dev test lint run build validate-contracts test-integration coverage ci-local check down
 
-FRONTEND_PATH = $(PWD)/frontend
 BACKEND_PATH = $(PWD)/backend
 TEST_DATABASE_URL = postgres://postgres:test@localhost:5433/testdb?sslmode=disable
 TEST_REDIS_URL = redis://localhost:6380
@@ -15,10 +14,10 @@ help:
 	@echo "usage: make <target>"
 	@echo "bootstrap     set up fresh dev environment"
 	@echo "hooks         install git hooks"
-	@echo "dev           start backend + frontend locally"
+	@echo "dev           start backend locally"
 	@echo "test          run all tests"
 	@echo "lint          run linters"
-	@echo "build         build backend + frontend"
+	@echo "build         build backend"
 	@echo "coverage      run coverage report"
 	@echo "validate-contracts  lint OpenAPI + run contract tests"
 	@echo "ci-local      simulate full CI pipeline locally"
@@ -35,12 +34,11 @@ dev:
 	@bash -ceu ' \
 		set -euo pipefail; \
 		(cd backend && go run .) & backend_pid=$$!; \
-		(cd frontend && bun dev) & frontend_pid=$$!; \
 		cleanup() { \
-			kill "$$backend_pid" "$$frontend_pid" >/dev/null 2>&1 || true; \
+			kill "$$backend_pid" >/dev/null 2>&1 || true; \
 		}; \
 		trap cleanup INT TERM EXIT; \
-		wait -n "$$backend_pid" "$$frontend_pid"; \
+		wait -n "$$backend_pid"; \
 	'
 
 test:
@@ -49,8 +47,6 @@ test:
 		export TEST_DATABASE_URL="$(TEST_DATABASE_URL)"; \
 		export TEST_REDIS_URL="$(TEST_REDIS_URL)"; \
 		go test ./backend/...; \
-		cd frontend; \
-		bun test; \
 	'
 
 lint:
@@ -61,20 +57,15 @@ lint:
 			exit 1; \
 		fi; \
 		golangci-lint run ./backend/...; \
-		cd frontend; \
-		bun run lint; \
 	'
 
 run: test
-	@if [ -d "$(FRONTEND_PATH)" ]; then cd $(FRONTEND_PATH) && bun run dev; fi
 	@if [ -d "$(BACKEND_PATH)" ]; then cd $(BACKEND_PATH) && $(MAKE) run; fi
 
 build:
 	@bash -ceu ' \
 		set -euo pipefail; \
 		go build ./backend/...; \
-		cd frontend; \
-		bun run build; \
 	'
 
 validate-contracts:
@@ -123,25 +114,13 @@ ci-local:
 		export TEST_REDIS_URL="$(TEST_REDIS_URL)"; \
 		cd backend; \
 		go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic; \
-		cd ../frontend; \
-		bun install; \
-		bun test --coverage; \
-		cd ..; \
 		cd backend; \
 		bash scripts/validate-openapi.sh; \
 		cd ..; \
 		go test ./backend/internal/contract/...; \
-		cd frontend; \
-		bun install; \
-		bun test src/lib/__tests__/api-client.test.ts; \
-		cd ..; \
 		go test -tags integration ./backend/internal/integration/...; \
 		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
 		"$$(go env GOPATH)/bin/gosec" -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...; \
-		cd frontend; \
-		bun install; \
-		bun audit; \
-		cd ..; \
 		cd backend; \
 		go run . >/tmp/ci-local-backend.log 2>&1 & \
 		backend_pid=$$!; \

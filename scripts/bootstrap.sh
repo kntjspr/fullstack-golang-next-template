@@ -53,15 +53,7 @@ if [ ! -f "$BOOTSTRAP_DONE_FILE" ]; then
     # Replace in README.md
     sed -i "s|$OLD_MODULE|$NEW_MODULE_NAME|g" "$ROOT_DIR/README.md"
 
-    # Replace in any frontend files that reference the module
-    FRONTEND_MATCHES="$(
-      find "$ROOT_DIR/frontend" -type f \( -name "*.ts" -o -name "*.tsx" -o -name "*.json" \) \
-        -not -path "*/node_modules/*" | \
-        xargs grep -l "$OLD_MODULE" 2>/dev/null || true
-    )"
-    if [ -n "$FRONTEND_MATCHES" ]; then
-      printf "%s\n" "$FRONTEND_MATCHES" | xargs sed -i "s|$OLD_MODULE|$NEW_MODULE_NAME|g"
-    fi
+
 
     # Update go.sum by running go mod tidy
     echo "==> Running go mod tidy after module rename..."
@@ -246,69 +238,53 @@ run_backend_connectivity_check() {
 
 cd "$ROOT_DIR"
 
-echo "[1/11] Checking prerequisites"
+echo "[1/8] Checking prerequisites"
 STEP="Checking prerequisites"
 check_command go "Install Go 1.22 or newer."
 check_go_version
-check_command bun "Install Bun from https://bun.sh/."
-bun --version >/dev/null
 check_command docker "Install Docker Engine/Desktop."
 docker info >/dev/null
 check_command make "Install GNU Make."
 make --version >/dev/null
 docker compose version >/dev/null
 
-echo "[2/11] Configuring environment"
+echo "[2/8] Configuring environment"
 STEP="Configuring environment"
 copy_env_if_missing "$ROOT_DIR/.env.example" "$ROOT_DIR/.env"
 copy_env_if_missing "$ROOT_DIR/backend/.env.example" "$ROOT_DIR/backend/.env"
-copy_env_if_missing "$ROOT_DIR/frontend/.env.example" "$ROOT_DIR/frontend/.env"
 
-echo "[3/11] Installing git hooks"
+echo "[3/8] Installing git hooks"
 STEP="Installing git hooks"
 echo "==> Installing git hooks..."
 bash scripts/install-hooks.sh
 
-echo "[4/11] Installing frontend dependencies"
-STEP="Installing frontend dependencies"
-(cd "$ROOT_DIR/frontend" && bun install)
-
-echo "[5/11] Starting test infrastructure"
+echo "[4/8] Starting test infrastructure"
 STEP="Starting test infrastructure"
 docker compose -f "$COMPOSE_FILE" up -d
 
-echo "[6/11] Waiting for Postgres health check"
+echo "[5/8] Waiting for Postgres health check"
 STEP="Waiting for Postgres health check"
 wait_for_postgres
 
-echo "[7/11] Waiting for Redis health check"
+echo "[6/8] Waiting for Redis health check"
 STEP="Waiting for Redis health check"
 wait_for_redis
 
-echo "[8/11] Running backend DB connectivity check"
+echo "[7/8] Running backend DB connectivity check"
 STEP="Running backend DB connectivity check"
 run_backend_connectivity_check
 
-echo "[9/11] Validating OpenAPI contracts"
-STEP="Validating OpenAPI contracts"
+echo "[8/8] Validating OpenAPI contracts and running tests"
+STEP="Validating OpenAPI contracts and running tests"
 make validate-contracts
-
-echo "[10/11] Running backend tests"
-STEP="Running backend tests"
 TEST_DATABASE_URL="$TEST_DATABASE_URL" TEST_REDIS_URL="$TEST_REDIS_URL" go test ./backend/...
-
-echo "[11/11] Running frontend tests"
-STEP="Running frontend tests"
-(cd "$ROOT_DIR/frontend" && bun test)
 
 echo ""
 echo "✓ Prerequisites checked"
 echo "✓ Environment configured"
 echo "✓ Git hooks installed"
-echo "✓ Dependencies installed"
 echo "✓ Test infrastructure running"
 echo "✓ Backend tests passed"
-echo "✓ Frontend tests passed"
 echo "✓ Contracts validated"
 if [ "$FIRST_TIME_RAN" = true ]; then
   echo "✓ First-time setup complete (module name configured)"

@@ -1,7 +1,7 @@
 # Architecture
 
 ## Overview
-This template solves the recurring setup burden of starting a production-grade web stack from scratch. It provides a pre-wired backend, frontend, contract checks, and deployment scaffolding so teams can focus on business features instead of bootstrapping infrastructure.
+This template solves the recurring setup burden of starting a production-grade web stack from scratch. It provides a pre-wired backend, contract checks, and deployment scaffolding so teams can focus on business features instead of bootstrapping infrastructure.
 
 It is designed for:
 - Full-stack Go + TypeScript teams
@@ -12,16 +12,14 @@ It is designed for:
 ```mermaid
 flowchart LR
     A[Browser] --> B[Nginx]
-    B --> C[Frontend\nNext.js app]
-    C --> D[Backend API\nGo + chi]
+    B --> D[Backend API\nGo + chi]
     D --> E[(Postgres)]
     D --> F[(Redis)]
 ```
 
 Component roles:
-- Browser: renders UI, calls frontend routes and API endpoints.
-- Nginx: reverse proxy and edge layer for frontend/backend routing in deployed environments.
-- Frontend (Next.js): App Router UI, metadata/SEO generation, API client consumption.
+- Browser: calls API endpoints.
+- Nginx: reverse proxy and edge layer routing in deployed environments.
 - Backend (Go/chi): HTTP routing, middleware enforcement, auth, DB/cache interaction.
 - Postgres: system-of-record relational data store.
 - Redis: low-latency key/value store for transient state such as counters and session-oriented cache.
@@ -70,31 +68,6 @@ GORM models and migrations:
 - Test setup uses GORM `AutoMigrate` in `internal/testutil/SetupTestDB` for rapid schema alignment.
 - Production schema changes are tracked in `backend/migrations/*.sql` for explicit, reviewable DDL.
 - Model structs (`internal/models`) must stay aligned with SQL migrations and OpenAPI response shapes.
-
-## Frontend Architecture
-App Router structure:
-- `frontend/src/app/layout.tsx`: root layout, shared document/body shell, analytics script injection.
-- `frontend/src/app/page.tsx`: default landing page.
-- `frontend/src/app/sitemap.ts`: generates sitemap metadata route.
-- `frontend/src/app/robots.ts`: generates robots metadata route.
-
-API client layer:
-- `frontend/src/lib/api-client.ts` wraps `fetch` with:
-  - base URL support via `NEXT_PUBLIC_API_URL`
-  - bearer token propagation from localStorage
-  - 401 token cleanup
-  - normalized API/network error handling (`ApiError`)
-  - support for JSON and non-JSON success bodies
-
-MSW mock layer:
-- `frontend/src/mocks/handlers.ts` defines HTTP handlers that mirror OpenAPI routes.
-- `frontend/src/mocks/server.ts` mounts handlers for tests.
-- Active in test runtime only (Vitest + jsdom), not in production builds.
-
-SEO utilities:
-- `frontend/src/lib/seo.ts` builds metadata used by `layout.tsx`.
-- `frontend/src/lib/sitemap.ts` builds sitemap entries.
-- `src/app/sitemap.ts` and `src/app/robots.ts` convert lib output into App Router metadata routes.
 
 ## Data Layer
 Postgres:
@@ -152,10 +125,8 @@ Test pyramid target:
 Test tiers and locations:
 - Unit tests:
   - Backend: `backend/**/**/*_test.go`
-  - Frontend: `frontend/src/lib/__tests__/`
 - Contract tests:
   - Backend contract suite: `backend/internal/contract/contract_test.go`
-  - Frontend MSW/OpenAPI alignment checks: `frontend/src/lib/__tests__/api.test.ts`, `api-client.test.ts`
 - Integration tests:
   - `backend/internal/integration/` with `integration` build tag
 
@@ -167,7 +138,6 @@ Why real Postgres/Redis instead of mocks:
 Contract tripwire model:
 - `backend/internal/swagger/openapi.yaml` defines expected API contract.
 - chi router handlers must expose behavior that satisfies the spec.
-- `frontend/src/mocks/handlers.ts` must mirror the same contract for frontend tests.
 - Any mismatch triggers contract/test failures before merge.
 
 ## Deployment
@@ -176,12 +146,10 @@ Ansible deployment overview:
 - `roles/postgres`: Postgres provisioning/configuration.
 - `roles/redis`: Redis provisioning/configuration.
 - `roles/backend`: Go API deployment and service management.
-- `roles/frontend`: Next.js frontend deployment.
 - `roles/nginx`: reverse proxy and public ingress configuration.
 
 Deployment topology note:
 - Current Ansible defaults are single-host oriented.
-- For split frontend/backend hosting, follow `docs/DEPLOYMENT_TOPOLOGIES.md`.
 
 Environment promotion:
 - Local -> Staging -> Production via environment-specific `.env` values and inventory/playbook execution.

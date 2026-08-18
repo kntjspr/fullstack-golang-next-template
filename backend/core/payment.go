@@ -34,7 +34,7 @@ func ValidateAuthorization(ctx context.Context, amount int64) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if amount <= 1 {
+	if amount <= 0 {
 		return ErrInvalidAmount
 	}
 	if amount > MaxAuthorizationAmount {

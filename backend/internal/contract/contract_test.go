@@ -423,7 +423,7 @@ func operationRequestPath(rawPath string, pathItem *openapi3.PathItem, operation
 }
 
 func validateResponseBody(response *openapi3.Response, body []byte) error {
-	if response.Content == nil || len(response.Content) == 0 {
+	if len(response.Content) == 0 {
 		return nil
 	}
 

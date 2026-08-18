@@ -22,7 +22,9 @@ trap cleanup EXIT
 # isolated worktree and apply the caller's staged and unstaged changes so a
 # failed mutation run cannot leave the real checkout altered.
 git -C "$ROOT_DIR" worktree add --detach "$WORKTREE_DIR" HEAD >/dev/null
-git -C "$ROOT_DIR" diff --binary HEAD | git -C "$WORKTREE_DIR" apply --whitespace=nowarn
+if ! git -C "$ROOT_DIR" diff --quiet HEAD; then
+  git -C "$ROOT_DIR" diff --binary HEAD | git -C "$WORKTREE_DIR" apply --whitespace=nowarn
+fi
 
 cd "$WORKTREE_DIR/backend"
 

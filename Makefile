@@ -114,7 +114,6 @@ ci-local:
 		export TEST_REDIS_URL="$(TEST_REDIS_URL)"; \
 		cd backend; \
 		go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic; \
-		cd backend; \
 		bash scripts/validate-openapi.sh; \
 		cd ..; \
 		go test ./backend/internal/contract/...; \
@@ -122,6 +121,7 @@ ci-local:
 		go install github.com/securego/gosec/v2/cmd/gosec@latest; \
 		"$$(go env GOPATH)/bin/gosec" -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...; \
 		cd backend; \
+		export JWT_SECRET=testsecret; \
 		go run . >/tmp/ci-local-backend.log 2>&1 & \
 		backend_pid=$$!; \
 		cd ..; \

@@ -64,15 +64,47 @@ jobs:
           cd backend
           go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic
 
-      - name: Upload backend coverage artifact
-        uses: actions/upload-artifact@v6
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          name: backend-coverage
-          path: backend/backend-coverage.out
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: backend/backend-coverage.out
 
       - name: Stop test services
         if: always()
         run: docker compose -f docker-compose.test.yml down
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.x'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: backend
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build production image
+        run: |
+          cd backend
+          docker build -t test-backend .
 
   contract-tests:
     runs-on: ubuntu-latest
@@ -207,6 +239,11 @@ jobs:
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           "$(go env GOPATH)/bin/gosec" -exclude-dir=backend/.gopath -exclude-dir=backend/.gomodcache -exclude-dir=backend/.gocache ./backend/...
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          "$(go env GOPATH)/bin/govulncheck" -C backend ./...
 
       - name: Secret scanning
         run: |

@@ -1,5 +1,17 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
+
+if ! go vet ./backend/...; then
+  echo "go vet failed. Fix reported issues before committing." >&2
+  exit 1
+fi
+
+unformatted_files="$(gofmt -l .)"
+if [ -n "$unformatted_files" ]; then
+  echo "The following Go files are not gofmt-formatted:" >&2
+  echo "$unformatted_files" >&2
+  exit 1
+fi
 
 if ! command -v gitleaks >/dev/null 2>&1; then
   echo "gitleaks not found. Install from https://gitleaks.io or run: brew install gitleaks" >&2

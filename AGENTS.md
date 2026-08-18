@@ -17,6 +17,10 @@ These values override any assumption you might make from file contents alone.
 
 Key file locations:
 - Router registration: `backend/internal/router/router.go`
+- Stable business contracts: `backend/core/`
+- Replaceable AI implementations and adapters: `backend/ai/`
+- Protected service contracts: `backend/service_test.go`
+- AI-owned scratch tests: `backend/service_ai_test.go`
 - Handler pattern: `backend/internal/router/auth.go` (copy this pattern)
 - Handler test pattern: `backend/internal/router/auth_test.go` (copy this pattern)
 - Middleware: `backend/middleware/`
@@ -36,7 +40,7 @@ Stack summary:
 - Contract: OpenAPI spec at `backend/internal/swagger/openapi.yaml`
 
 Repository structure:
-- `backend/`: Go API service, middleware, router, auth, DB/cache integrations, migrations
+- `backend/`: Go API service, stable core contracts, AI adapters, middleware, router, auth, DB/cache integrations, migrations
 - `docs/`: architecture and security documentation
 - `scripts/`: cross-project test and reporting scripts
 - `roles/`: deployment automation (Ansible)
@@ -130,6 +134,26 @@ Important:
 - CLI/MCP/API clients: pass Authorization: Bearer <token> header explicitly
 - Logout: POST /auth/logout clears the cookie
 
+## 6.1 AI Execution Loop Protocol
+The AI governance boundary is scoped to the Go module at `backend/`:
+- `backend/core/` contains stable business contracts and rules.
+- `backend/ai/` contains replaceable AI-authored implementations and adapters.
+- `backend/service_test.go` is the protected, hand-authored contract suite.
+- `backend/service_ai_test.go` is available for AI-owned scratch coverage.
+
+Follow this loop for every AI-authored change:
+1. Read the relevant code, ADRs, and `backend/service_test.go`.
+2. Run `make test` and confirm the baseline is green.
+3. Modify application code only to fulfil the requested behavior.
+4. Run `make test` again. If `service_test.go` fails, fix the implementation; never alter an existing contract assertion. Scratch tests may change with internal implementation details.
+5. Run `make security` and `make mutation-test` before declaring the task complete.
+
+Hard rules:
+- Never use `panic` for expected failures; return errors first.
+- New third-party runtime imports require an accepted ADR that records the approval.
+- Goroutines must receive a `context.Context` and must not leak.
+- Treat `backend/core/` contracts as stable. Expand them only with a new, additive contract case and a documented ADR when the public behavior changes.
+
 ## 7. Adding a New Backend Endpoint
 Every new endpoint must follow this exact sequence:
 1. Add the route to `backend/internal/swagger/openapi.yaml` first.
@@ -204,6 +228,7 @@ The contract is always the source of truth, not ad-hoc implementation details.
 - `unit-tests`: runs on every push and pull request
 - `contract-tests`: runs on every push and pull request
 - `security`: runs on every push and pull request
+- `mutation-tests`: runs on every push and pull request
 - `integration-tests`: runs on push to `main` and PRs targeting `main` only
 - All required jobs must pass before merge
 - Never merge while any required job is red

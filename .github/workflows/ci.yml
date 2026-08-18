@@ -64,6 +64,9 @@ jobs:
           cd backend
           go test ./... -race -coverprofile=backend-coverage.out -covermode=atomic
 
+      - name: Enforce coverage floor
+        run: bash scripts/coverage-report.sh
+
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
         with:
@@ -111,6 +114,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Set up Go 1.25
         uses: actions/setup-go@v6
@@ -160,6 +165,10 @@ jobs:
           TEST_DATABASE_URL: postgres://postgres:test@localhost:5433/testdb?sslmode=disable
           TEST_REDIS_URL: redis://localhost:6380
         run: go test ./backend/internal/contract/...
+
+      - name: Protect service contracts (additive-only)
+        if: github.event_name == 'pull_request'
+        run: bash scripts/protect-contract-tests.sh "origin/${{ github.base_ref }}"
 
       - name: Stop test services
         if: always()
@@ -229,7 +238,7 @@ jobs:
       - name: Set up Go 1.25
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25.x'
+          go-version: '1.25.13'
           cache-dependency-path: |
             backend/go.mod
             backend/go.sum
@@ -328,3 +337,21 @@ jobs:
           echo "$headers" | grep -qi '^X-Frame-Options:'
           echo "$headers" | grep -qi '^X-XSS-Protection:'
           echo "$headers" | grep -qi '^Content-Security-Policy:'
+
+  mutation-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go 1.25
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.13'
+          cache-dependency-path: |
+            backend/go.mod
+            backend/go.sum
+            go.work.sum
+
+      - name: Kill mutations in stable core logic
+        run: bash scripts/mutation-test.sh

@@ -96,6 +96,8 @@ make test                          # unit tests
 make validate-contracts            # openapi spec vs implementation
 bash scripts/test-integration.sh   # integration tests (requires docker)
 make coverage                      # coverage report
+make security                      # gosec + govulncheck
+make mutation-test                 # mutation-test stable core logic
 make check                         # full pre-deploy gate — run this before every deploy
 ```
 
@@ -106,6 +108,10 @@ make check                         # full pre-deploy gate — run this before ev
 ```text
 go-project/
 ├── backend/                    # go api server
+│   ├── core/                    # stable business contracts and rules
+│   ├── ai/                      # replaceable AI-authored adapters
+│   ├── service_test.go          # protected boundary contracts
+│   ├── service_ai_test.go       # AI-owned scratch tests
 │   ├── internal/               # private packages (router, auth, db, cache, config, contract tests)
 │   ├── middleware/             # shared http middleware (auth, rate limit, headers, validation)
 │   ├── migrations/             # sql migration files

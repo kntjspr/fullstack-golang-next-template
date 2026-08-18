@@ -13,6 +13,10 @@ Key paths and responsibilities.
 ## Backend
 
 - `backend/main.go`: process wiring and middleware registration.
+- `backend/core/`: stable business contracts and rules protected by mutation testing.
+- `backend/ai/`: replaceable AI-authored implementations and adapters.
+- `backend/service_test.go`: additive-only hand-authored service contracts.
+- `backend/service_ai_test.go`: AI-owned scratch tests for implementation details.
 - `backend/internal/router/router.go`: route registration root.
 - `backend/internal/router/auth.go`: auth handlers and cookie behavior.
 - `backend/internal/auth/token.go`: token generation/validation logic.

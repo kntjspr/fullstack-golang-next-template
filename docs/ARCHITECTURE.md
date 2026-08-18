@@ -27,6 +27,10 @@ Component roles:
 ## Backend Architecture
 Package responsibilities:
 - `backend/main.go`: process wiring, config bootstrap, middleware setup, server start.
+- `backend/core/`: stable business contracts and validation rules. Changes require additive contract coverage.
+- `backend/ai/`: replaceable AI-authored adapters that implement core contracts.
+- `backend/service_test.go`: protected, hand-authored service-boundary contract tests.
+- `backend/service_ai_test.go`: AI-owned tests for implementation details.
 - `backend/cmd/`: HTTP server runtime setup (graceful shutdown in prod mode).
 - `backend/internal/config/`: env-driven configuration loading (`NewConfig` returns `(*Config, error)`).
 - `backend/internal/router/`: route registration and handlers.
@@ -127,6 +131,7 @@ Test tiers and locations:
   - Backend: `backend/**/**/*_test.go`
 - Contract tests:
   - Backend contract suite: `backend/internal/contract/contract_test.go`
+  - Stable service contracts: `backend/service_test.go` (CI permits additions but rejects edits to existing lines)
 - Integration tests:
   - `backend/internal/integration/` with `integration` build tag
 
@@ -156,6 +161,6 @@ Environment promotion:
 - Keep secret/material differences in env management, not hardcoded source changes.
 
 CI deployment gates:
-- Unit, contract, and security checks run on every push/PR.
+- Unit, contract, security, coverage-floor, and mutation checks run on every push/PR.
 - Integration checks gate mainline changes targeting production paths.
 - Deployment should only occur from green CI states and after contract validation.

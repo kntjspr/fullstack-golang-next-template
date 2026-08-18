@@ -27,6 +27,7 @@ hosts.ini
 # Reports and coverage artifacts
 coverage.out
 reports/
+backend/report.json
 
 # Build outputs
 frontend/.next/

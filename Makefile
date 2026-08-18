@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap hooks dev test lint run build validate-contracts test-integration coverage ci-local check down
+.PHONY: help bootstrap hooks dev test lint run build validate-contracts test-integration coverage security mutation-test protect-contract-tests ci-local check down
 
 BACKEND_PATH = $(PWD)/backend
 TEST_DATABASE_URL = postgres://postgres:test@localhost:5433/testdb?sslmode=disable
@@ -19,6 +19,9 @@ help:
 	@echo "lint          run linters"
 	@echo "build         build backend"
 	@echo "coverage      run coverage report"
+	@echo "security      run gosec and govulncheck"
+	@echo "mutation-test run mutation tests for stable core logic"
+	@echo "protect-contract-tests  reject edits to existing service contracts"
 	@echo "validate-contracts  lint OpenAPI + run contract tests"
 	@echo "ci-local      simulate full CI pipeline locally"
 	@echo "check         run full pre-deploy regression gate"
@@ -46,7 +49,7 @@ test:
 		set -euo pipefail; \
 		export TEST_DATABASE_URL="$(TEST_DATABASE_URL)"; \
 		export TEST_REDIS_URL="$(TEST_REDIS_URL)"; \
-		go test ./backend/...; \
+		go test -race -cover ./backend/...; \
 	'
 
 lint:
@@ -77,6 +80,15 @@ test-integration:
 
 coverage:
 	@bash scripts/coverage-report.sh
+
+security:
+	@bash scripts/security-scan.sh
+
+mutation-test:
+	@bash scripts/mutation-test.sh
+
+protect-contract-tests:
+	@bash scripts/protect-contract-tests.sh
 
 ci-local:
 	@bash -ceu ' \

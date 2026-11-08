@@ -4,10 +4,12 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOOL_BIN_DIR="$(go env GOPATH)/bin"
 MUTESTING_BIN="$TOOL_BIN_DIR/go-mutesting"
+# Pin the last upstream revision that supports this repository's Go 1.25 toolchain.
+MUTESTING_VERSION="v0.0.0-20251224154403-466f39c6965a"
 
 if [ ! -x "$MUTESTING_BIN" ]; then
   echo "go-mutesting not found. Installing go-mutesting..."
-  go install github.com/avito-tech/go-mutesting/cmd/go-mutesting@latest
+  go install "github.com/avito-tech/go-mutesting/cmd/go-mutesting@$MUTESTING_VERSION"
 fi
 
 WORKTREE_DIR="$(mktemp -d)"

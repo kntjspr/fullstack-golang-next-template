@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/auth"
+	"myproject2/internal/testutil"
 )
 
 func TestAuthenticator(t *testing.T) {

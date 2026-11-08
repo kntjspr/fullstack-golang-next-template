@@ -16,15 +16,14 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/router"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/auth"
+	"myproject2/internal/router"
+	"myproject2/internal/testutil"
 )
 
 func TestOpenAPIContract(t *testing.T) {
 	specPath := contractSpecPath(t)
 	t.Setenv("JWT_SECRET", "contract-secret")
-	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
 
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromFile(specPath)

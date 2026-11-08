@@ -11,9 +11,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/httpapi"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/models"
+	"myproject2/internal/auth"
+	"myproject2/internal/httpapi"
+	"myproject2/internal/models"
 )
 
 const (

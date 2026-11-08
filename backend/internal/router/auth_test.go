@@ -12,16 +12,14 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/auth"
+	"myproject2/internal/testutil"
 )
 
 func setupAuthTestServer(t *testing.T, appEnv string) (baseURL, email, password string) {
 	t.Helper()
 
 	t.Setenv("JWT_SECRET", "router-auth-secret")
-	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
-	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
 	if appEnv != "" {
 		t.Setenv("STAGE_STATUS", appEnv)
 	}
@@ -50,8 +48,6 @@ func setupAuthTestServer(t *testing.T, appEnv string) (baseURL, email, password 
 
 func TestAuthRoutes(t *testing.T) {
 	t.Setenv("JWT_SECRET", "router-auth-secret")
-	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
-	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
 
 	db := testutil.SetupTestDB(t)
 	defer testutil.TeardownTestDB(t, db)
@@ -454,8 +450,6 @@ func TestLogoutReturns200WithoutAuth(t *testing.T) {
 
 func TestRefreshTokenFromCookie(t *testing.T) {
 	t.Setenv("JWT_SECRET", "router-auth-secret")
-	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
-	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
 	t.Setenv("STAGE_STATUS", "dev")
 
 	db := testutil.SetupTestDB(t)

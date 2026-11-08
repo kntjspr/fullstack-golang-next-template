@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/httpapi"
+	"myproject2/internal/auth"
+	"myproject2/internal/httpapi"
 )
 
 type authContextKey string

@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/router"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/router"
+	"myproject2/internal/testutil"
 )
 
 func newSwaggerTestServer(t *testing.T) string {

@@ -8,8 +8,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/router/healthcheck"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/swagger"
+	"myproject2/internal/router/healthcheck"
+	"myproject2/internal/swagger"
 )
 
 // GetRoutes function for getting routes.

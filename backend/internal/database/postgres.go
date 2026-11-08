@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	gormLogger "gorm.io/gorm/logger"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
+	"myproject2/internal/config"
 )
 
 // OpenPostgres creates and validates a PostgreSQL connection for GORM.

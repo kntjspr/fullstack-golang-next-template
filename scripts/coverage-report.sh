@@ -3,6 +3,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.test.yml"
+source "$ROOT_DIR/scripts/test-env.sh"
+load_test_environment "$ROOT_DIR/.env"
 REPORT_DIR="$ROOT_DIR/reports"
 REPORT_FILE="$REPORT_DIR/coverage-summary.txt"
 
@@ -63,9 +65,6 @@ fi
 
 wait_for_healthy postgres
 wait_for_healthy redis
-
-export TEST_DATABASE_URL="postgres://postgres:test@localhost:5433/testdb?sslmode=disable"
-export TEST_REDIS_URL="redis://localhost:6380"
 
 pushd "$ROOT_DIR/backend" >/dev/null
 backend_output="$(mktemp)"

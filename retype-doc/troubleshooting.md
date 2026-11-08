@@ -99,8 +99,6 @@ Symptom:
 Fix:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d
-export TEST_DATABASE_URL=postgres://postgres:test@localhost:5433/testdb?sslmode=disable
-export TEST_REDIS_URL=redis://localhost:6380
+make bootstrap
 make test
 ```

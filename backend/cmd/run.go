@@ -12,7 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
+	"myproject2/internal/config"
 )
 
 // Run function to start server instance with config & router.

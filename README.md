@@ -354,8 +354,10 @@ inspect postgres locally with [tableplus](https://tableplus.com) or pgadmin. use
 | `SENTRY_ENVIRONMENT` | optional | sentry environment tag, usually aligned with `STAGE_STATUS`. |
 | `SENTRY_RELEASE` | optional | release version tag sent to sentry. |
 | `SENTRY_TRACES_SAMPLE_RATE` | optional | trace sample rate for sentry performance events. |
-| `TEST_DATABASE_URL` | dev only | postgres url used by tests. local default points to port `5433`. |
-| `TEST_REDIS_URL` | dev only | redis url used by tests. local default points to port `6380`. |
+| `TEST_POSTGRES_PORT` | dev only | test Postgres host port. Defaults to `5433`; bootstrap selects and stores a free port in root `.env`. |
+| `TEST_REDIS_PORT` | dev only | test Redis host port. Defaults to `6380`; bootstrap selects and stores a free port in root `.env`. |
+| `TEST_DATABASE_URL` | dev only | Postgres URL used by tests; bootstrap builds it from `TEST_POSTGRES_PORT`. |
+| `TEST_REDIS_URL` | dev only | Redis URL used by tests; bootstrap builds it from `TEST_REDIS_PORT`. |
 | `SERVER_READ_TIMEOUT` | optional | http read timeout in seconds. |
 | `SERVER_WRITE_TIMEOUT` | optional | http write timeout in seconds. |
 | `SERVER_IDLE_TIMEOUT` | optional | http idle timeout in seconds. |

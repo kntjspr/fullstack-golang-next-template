@@ -46,8 +46,10 @@ This page consolidates backend/frontend environment variables used by runtime an
 
 ## Test Runtime Variables
 
-- `TEST_DATABASE_URL=postgres://postgres:test@localhost:5433/testdb?sslmode=disable`
-- `TEST_REDIS_URL=redis://localhost:6380`
+- `TEST_POSTGRES_PORT`: host port for test Postgres. Defaults to `5433`; bootstrap selects the next free port when occupied and stores it in the root `.env`.
+- `TEST_REDIS_PORT`: host port for test Redis. Defaults to `6380`; bootstrap selects the next free port when occupied and stores it in the root `.env`.
+- `TEST_DATABASE_URL`: test database connection URL. The default uses `TEST_POSTGRES_PORT`.
+- `TEST_REDIS_URL`: test Redis connection URL. The default uses `TEST_REDIS_PORT`.
 
 These are used by test scripts and Make targets.
 

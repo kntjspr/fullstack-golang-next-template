@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kntjspr/fullstack-golang-next-template/ai"
-	"github.com/kntjspr/fullstack-golang-next-template/core"
+	"myproject2/ai"
+	"myproject2/core"
 )
 
 func TestAuthorizeContract(t *testing.T) {

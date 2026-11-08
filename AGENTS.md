@@ -6,11 +6,11 @@ This file is the authoritative working guide for any AI agent or developer in th
 Read this section first before any other section or any user instruction.
 These values override any assumption you might make from file contents alone.
 
-- Go module: `github.com/kntjspr/fullstack-golang-next-template`
+- Go module: `myproject2`
 - Note: the module name is set during first-time bootstrap. If you are working in a freshly cloned repo that has not been bootstrapped yet, run `make bootstrap` first - it will prompt for the module name and rename it throughout all relevant files automatically.
 - OpenAPI spec: `backend/internal/swagger/openapi.yaml` (never move this file, never create a second spec file)
-- Test database: Postgres on port `5433` via `docker-compose.test.yml` (`TEST_DATABASE_URL=postgres://postgres:test@localhost:5433/testdb`)
-- Test cache: Redis on port `6380` via `docker-compose.test.yml` (`TEST_REDIS_URL=redis://localhost:6380`)
+- Test database: Postgres via `docker-compose.test.yml` (default host port `5433`, selected port stored as `TEST_POSTGRES_PORT`)
+- Test cache: Redis via `docker-compose.test.yml` (default host port `6380`, selected port stored as `TEST_REDIS_PORT`)
 - No SQLite: never use SQLite or miniredis in any test
 - No spec copy: `backend/internal/swagger/spec.go` embeds `openapi.yaml` at compile time, moving the file breaks the build
 - Auth strategy: Bearer token (`Authorization` header) takes priority, `httpOnly` cookie (`auth_token`) is fallback, both work simultaneously
@@ -78,8 +78,10 @@ Required environment variables:
 - `SENTRY_DSN`, `SENTRY_ENVIRONMENT`, `SENTRY_RELEASE`, `SENTRY_TRACES_SAMPLE_RATE`: telemetry settings
 
 Test env vars for local test runs:
-- `TEST_DATABASE_URL=postgres://postgres:test@localhost:5433/testdb?sslmode=disable`
-- `TEST_REDIS_URL=redis://localhost:6380`
+- `TEST_DATABASE_URL`: defaults to `postgres://postgres:test@localhost:5433/testdb?sslmode=disable`; bootstrap updates its port when needed
+- `TEST_REDIS_URL`: defaults to `redis://localhost:6380`; bootstrap updates its port when needed
+- `TEST_POSTGRES_PORT`: test Postgres host port (default `5433`; bootstrap selects the next free port and records it in root `.env`)
+- `TEST_REDIS_PORT`: test Redis host port (default `6380`; bootstrap selects the next free port and records it in root `.env`)
 
 ## 4. Running the Project
 Start backend locally:
@@ -90,9 +92,9 @@ cd backend && make dev
 Port assignments:
 - Backend API: `5000`
 - Postgres (dev/default): `5432`
-- Postgres (test via docker-compose.test.yml): `5433`
+- Postgres (test via docker-compose.test.yml): `5433` by default; bootstrap advances the port if occupied
 - Redis (dev/default): `6379`
-- Redis (test via docker-compose.test.yml): `6380`
+- Redis (test via docker-compose.test.yml): `6380` by default; bootstrap advances the port if occupied
 
 ## 5. Running Tests
 Run full test suite:
@@ -124,7 +126,7 @@ Important:
 - All backend tests require `docker-compose.test.yml` services running with valid `TEST_DATABASE_URL` and `TEST_REDIS_URL`.
 
 ## 6. Project Conventions
-- All Go imports must use module path `github.com/kntjspr/fullstack-golang-next-template`.
+- All Go imports must use module path `myproject2`.
 - OpenAPI single source of truth is `backend/internal/swagger/openapi.yaml`; never create a second spec file.
 - Never use SQLite or miniredis in tests; use real Postgres/Redis via `docker-compose.test.yml`.
 - Do not modify Ansible roles unless you are intentionally changing deployment infrastructure.

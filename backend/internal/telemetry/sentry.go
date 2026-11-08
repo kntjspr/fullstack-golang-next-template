@@ -7,7 +7,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentryhttp "github.com/getsentry/sentry-go/http"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/config"
+	"myproject2/internal/config"
 )
 
 // InitSentry initializes Sentry SDK and returns middleware handler.

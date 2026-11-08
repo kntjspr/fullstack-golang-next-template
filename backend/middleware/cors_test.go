@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/testutil"
 )
 
 func TestCORSMiddleware(t *testing.T) {

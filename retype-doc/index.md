@@ -8,7 +8,7 @@ Use this as the source of truth for onboarding and deployment decisions. The roo
 
 - Frontend package manager is **Bun only**. Do not use npm/yarn.
 - OpenAPI contract source is **only** `backend/internal/swagger/openapi.yaml`.
-- Tests must use real Postgres/Redis from `docker-compose.test.yml` on ports `5433` and `6380`.
+- Tests must use real Postgres/Redis from `docker-compose.test.yml`; bootstrap uses ports `5433` and `6380` when available and stores fallback ports in the root `.env`.
 - Auth strategy is dual-mode: `Authorization: Bearer <token>` has priority; `auth_token` cookie is fallback.
 - Default Ansible automation is single-host oriented.
 

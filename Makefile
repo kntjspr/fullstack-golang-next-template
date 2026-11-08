@@ -7,8 +7,18 @@
 .PHONY: help bootstrap hooks dev test lint run build validate-contracts test-integration coverage security mutation-test protect-contract-tests ci-local check down
 
 BACKEND_PATH = $(PWD)/backend
-TEST_DATABASE_URL = postgres://postgres:test@localhost:5433/testdb?sslmode=disable
-TEST_REDIS_URL = redis://localhost:6380
+TEST_POSTGRES_PORT ?= $(shell awk -F= '$$1 == "TEST_POSTGRES_PORT" { print $$2; exit }' .env 2>/dev/null)
+TEST_REDIS_PORT ?= $(shell awk -F= '$$1 == "TEST_REDIS_PORT" { print $$2; exit }' .env 2>/dev/null)
+ifeq ($(strip $(TEST_POSTGRES_PORT)),)
+TEST_POSTGRES_PORT := 5433
+endif
+ifeq ($(strip $(TEST_REDIS_PORT)),)
+TEST_REDIS_PORT := 6380
+endif
+TEST_DATABASE_URL ?= postgres://postgres:test@localhost:$(TEST_POSTGRES_PORT)/testdb?sslmode=disable
+TEST_REDIS_URL ?= redis://localhost:$(TEST_REDIS_PORT)
+
+export TEST_POSTGRES_PORT TEST_REDIS_PORT TEST_DATABASE_URL TEST_REDIS_URL
 
 help:
 	@echo "usage: make <target>"

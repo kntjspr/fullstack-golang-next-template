@@ -1,4 +1,4 @@
-module github.com/kntjspr/fullstack-golang-next-template
+module myproject2
 
 go 1.25.0
 

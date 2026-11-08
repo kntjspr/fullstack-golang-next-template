@@ -36,10 +36,10 @@ make down
 
 Test service defaults:
 
-- Postgres: `localhost:5433`
-- Redis: `localhost:6380`
-- `TEST_DATABASE_URL=postgres://postgres:test@localhost:5433/testdb?sslmode=disable`
-- `TEST_REDIS_URL=redis://localhost:6380`
+- Postgres: `localhost:5433` by default; bootstrap selects and stores the next free port if occupied.
+- Redis: `localhost:6380` by default; bootstrap selects and stores the next free port if occupied.
+- `TEST_DATABASE_URL`: generated from the selected `TEST_POSTGRES_PORT`.
+- `TEST_REDIS_URL`: generated from the selected `TEST_REDIS_PORT`.
 
 ## Daily Command Reference
 

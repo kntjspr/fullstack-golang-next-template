@@ -3,7 +3,7 @@ package main_test
 import (
 	"testing"
 
-	"github.com/kntjspr/fullstack-golang-next-template/ai"
+	"myproject2/ai"
 )
 
 func TestNewPaymentProcessor(t *testing.T) {

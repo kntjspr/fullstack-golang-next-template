@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/kntjspr/fullstack-golang-next-template/internal/auth"
-	"github.com/kntjspr/fullstack-golang-next-template/internal/testutil"
+	"myproject2/internal/auth"
+	"myproject2/internal/testutil"
 )
 
 type getMeResponse struct {
@@ -23,8 +23,6 @@ func setupUsersRouteTestServer(t *testing.T) (string, string) {
 	t.Helper()
 
 	t.Setenv("JWT_SECRET", "users-route-secret")
-	t.Setenv("TEST_DATABASE_URL", "postgres://postgres:test@localhost:5433/testdb?sslmode=disable")
-	t.Setenv("TEST_REDIS_URL", "redis://localhost:6380")
 
 	db := testutil.SetupTestDB(t)
 	t.Cleanup(func() {

@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TEST_DATABASE_URL="${TEST_DATABASE_URL:-postgres://postgres:test@localhost:5433/testdb?sslmode=disable}"
-TEST_REDIS_URL="${TEST_REDIS_URL:-redis://localhost:6380}"
+source "$ROOT_DIR/scripts/test-env.sh"
+load_test_environment "$ROOT_DIR/.env"
 
 echo "=== [1/5] Environment check ==="
 bash scripts/check-env.sh

@@ -6,7 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 
-	"github.com/kntjspr/fullstack-golang-next-template/core"
+	"myproject2/core"
 )
 
 // PaymentProcessor is the AI-owned implementation of core.PaymentProcessor.

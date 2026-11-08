@@ -4,12 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$ROOT_DIR/docker-compose.test.yml"
 BOOTSTRAP_DONE_FILE="$ROOT_DIR/.bootstrap-done"
+source "$ROOT_DIR/scripts/test-env.sh"
 
 STEP=""
 trap 'echo "error: failed during step: $STEP" >&2' ERR
 
-TEST_DATABASE_URL="postgres://postgres:test@localhost:5433/testdb?sslmode=disable"
-TEST_REDIS_URL="redis://localhost:6380"
 FIRST_TIME_RAN=false
 
 if [ ! -f "$BOOTSTRAP_DONE_FILE" ]; then
@@ -166,6 +165,84 @@ copy_env_if_missing() {
   cp "$src" "$dest"
 }
 
+get_running_compose_port() {
+  local service="$1"
+  local container_port="$2"
+  local container_id state mapping port
+
+  container_id="$(docker compose -f "$COMPOSE_FILE" ps -q "$service")"
+  [ -n "$container_id" ] || return 1
+
+  state="$(docker inspect --format='{{.State.Status}}' "$container_id")"
+  [ "$state" = "running" ] || return 1
+
+  mapping="$(docker compose -f "$COMPOSE_FILE" port "$service" "$container_port" 2>/dev/null | head -n 1 || true)"
+  port="${mapping##*:}"
+  [[ "$port" =~ ^[0-9]+$ ]] || return 1
+
+  printf '%s\n' "$port"
+}
+
+port_is_listening() {
+  local port="$1"
+  (exec 3<>"/dev/tcp/127.0.0.1/$port") >/dev/null 2>&1
+}
+
+choose_test_port() {
+  local service="$1"
+  local container_port="$2"
+  local preferred_port="$3"
+  local port last_port
+
+  if port="$(get_running_compose_port "$service" "$container_port")"; then
+    printf '%s\n' "$port"
+    return 0
+  fi
+
+  if ! [[ "$preferred_port" =~ ^[0-9]+$ ]] || [ "$preferred_port" -lt 1 ] || [ "$preferred_port" -gt 65535 ]; then
+    echo "error: invalid host port '$preferred_port' for test service '$service'" >&2
+    return 1
+  fi
+
+  last_port=$((preferred_port + 100))
+  [ "$last_port" -le 65535 ] || last_port=65535
+
+  for port in $(seq "$preferred_port" "$last_port"); do
+    if ! port_is_listening "$port"; then
+      printf '%s\n' "$port"
+      return 0
+    fi
+  done
+
+  echo "error: no free host port found for test service '$service' starting at $preferred_port" >&2
+  return 1
+}
+
+persist_env_value() {
+  local key="$1"
+  local value="$2"
+  local env_file="$ROOT_DIR/.env"
+  local current_value temp_file
+
+  current_value="$(read_env_value "$key" "$env_file")"
+  [ "$current_value" = "$value" ] && return 0
+
+  temp_file="$(mktemp "$ROOT_DIR/.env.XXXXXX")"
+  awk -F= -v key="$key" -v value="$value" '
+    BEGIN { written = 0 }
+    $1 == key {
+      if (!written) print key "=" value
+      written = 1
+      next
+    }
+    { print }
+    END {
+      if (!written) print key "=" value
+    }
+  ' "$env_file" > "$temp_file"
+  mv "$temp_file" "$env_file"
+}
+
 run_backend_connectivity_check() {
   local backend_pid=0 started=0 ready=0 attempt
   local log_file
@@ -194,7 +271,7 @@ run_backend_connectivity_check() {
       LOGGER_PRETTY=false \
       DB_ENABLE=true \
       DB_HOST=127.0.0.1 \
-      DB_PORT=5433 \
+      DB_PORT="$TEST_POSTGRES_PORT" \
       DB_USER=postgres \
       DB_PASSWORD=test \
       DB_NAME=testdb \
@@ -202,7 +279,7 @@ run_backend_connectivity_check() {
       DB_TIMEZONE=UTC \
       REDIS_ENABLE=true \
       REDIS_HOST=127.0.0.1 \
-      REDIS_PORT=6380 \
+      REDIS_PORT="$TEST_REDIS_PORT" \
       REDIS_PASSWORD= \
       REDIS_DB=0 \
       SENTRY_DSN= \
@@ -252,6 +329,7 @@ echo "[2/8] Configuring environment"
 STEP="Configuring environment"
 copy_env_if_missing "$ROOT_DIR/.env.example" "$ROOT_DIR/.env"
 copy_env_if_missing "$ROOT_DIR/backend/.env.example" "$ROOT_DIR/backend/.env"
+load_test_environment "$ROOT_DIR/.env"
 
 echo "[3/8] Installing git hooks"
 STEP="Installing git hooks"
@@ -260,6 +338,16 @@ bash scripts/install-hooks.sh
 
 echo "[4/8] Starting test infrastructure"
 STEP="Starting test infrastructure"
+TEST_POSTGRES_PORT="$(choose_test_port postgres 5432 "$TEST_POSTGRES_PORT")"
+TEST_REDIS_PORT="$(choose_test_port redis 6379 "$TEST_REDIS_PORT")"
+TEST_DATABASE_URL="postgres://postgres:test@localhost:${TEST_POSTGRES_PORT}/testdb?sslmode=disable"
+TEST_REDIS_URL="redis://localhost:${TEST_REDIS_PORT}"
+persist_env_value TEST_POSTGRES_PORT "$TEST_POSTGRES_PORT"
+persist_env_value TEST_REDIS_PORT "$TEST_REDIS_PORT"
+persist_env_value TEST_DATABASE_URL "$TEST_DATABASE_URL"
+persist_env_value TEST_REDIS_URL "$TEST_REDIS_URL"
+export TEST_POSTGRES_PORT TEST_REDIS_PORT TEST_DATABASE_URL TEST_REDIS_URL
+echo "Using test Postgres on host port $TEST_POSTGRES_PORT and Redis on host port $TEST_REDIS_PORT."
 docker compose -f "$COMPOSE_FILE" up -d
 
 echo "[5/8] Waiting for Postgres health check"
